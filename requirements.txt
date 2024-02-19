@@ -1,0 +1,2 @@
+pymimir @ file:mimir/
+pynauty==2.8.6
