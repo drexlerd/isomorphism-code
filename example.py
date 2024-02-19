@@ -3,6 +3,7 @@
 import argparse
 
 from pynauty import *
+from mimir import *
 
 
 def create_graph(num_packages : int, grid_size: int):
@@ -21,7 +22,7 @@ def create_graph(num_packages : int, grid_size: int):
     t_truck = t_package + 1
     t_cell = t_truck + 1
 
-    
+
 
     g = Graph(num_vertices, True)
 
