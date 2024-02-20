@@ -1,7 +1,8 @@
 from graphviz import Digraph
 
 from typing import MutableSet, Dict
-from dataclasses import dataclass
+
+from pymimir import State
 
 from .color import Color
 
@@ -58,7 +59,8 @@ class Edge:
 
 
 class DirectedEdgeColoredGraph:
-    def __init__(self):
+    def __init__(self, state : State):
+        self._state = state
         self._vertices: MutableSet[Vertex] = set()
         self._adj_list: Dict[Vertex, MutableSet[Edge]] = dict()
 
@@ -71,7 +73,7 @@ class DirectedEdgeColoredGraph:
     def add_edge(self, edge : Edge):
         if edge.source not in self._adj_list:
             raise Exception("Source node of edge does not exist.")
-        if edge in self.adj_list[edge.source]:
+        if edge in self._adj_list[edge.source]:
             raise Exception("Edge with same source, target and color already exists.")
         self._adj_list[edge.source].add(edge)
 
@@ -87,14 +89,15 @@ class DirectedEdgeColoredGraph:
         dot = Digraph(comment='DirectedEdgeColoredGraph')
         for vertex in self._vertices:
             dot.node(str(vertex.id), str(vertex.color.concrete))
-        for source, edges in self._adj_list.items():
+        for _, edges in self._adj_list.items():
             for edge in edges:
-                print(edge.color)
                 dot.edge(str(edge.source.id), str(edge.target.id), str(edge.color.concrete))
-
-        print(dot.source)
         dot.render("output.gc", view=True)
     
+    @property
+    def state(self):
+        return self._state
+
     @property
     def vertices(self):
         return self._vertices

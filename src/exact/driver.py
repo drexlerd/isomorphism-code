@@ -33,7 +33,8 @@ class Driver:
         state_graphs = dict()
         for state in state_space.get_states():
             state_graph = StateGraph(state)
-            state_graph.graph.to_dot()
+            state_graph.dec_graph.to_dot()
+            state_graph.dvc_graph.to_dot()
             state_graphs[state] = state_graph
             break
 
