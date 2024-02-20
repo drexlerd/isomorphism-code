@@ -1,2 +1,2 @@
-pymimir @ file:mimir/
+./dependencies/mimir
 pynauty==2.8.6

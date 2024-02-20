@@ -3,7 +3,7 @@
 import argparse
 
 from pynauty import *
-from mimir import *
+from pymimir import *
 
 
 def create_graph(num_packages : int, grid_size: int):

@@ -1,0 +1,4 @@
+
+
+class Abstraction:
+    pass
