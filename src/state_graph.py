@@ -1,12 +1,14 @@
 from pymimir import *
+from pynauty import Graph as NautyGraph, certificate as nauty_certificate
 
 from typing import List
+from collections import defaultdict
 
 from .mimir_utils import flatten_types
 from .color import Color
 from .directed_edge_colored_graph import Vertex as DECVertex, Edge as DECEdge, DirectedEdgeColoredGraph as DECGraph
 from .directed_vertex_colored_graph import Vertex as DVCVertex, Edge as DVCEdge, DirectedVertexColoredGraph as DVCGraph
-from .graph_translator import dec_to_dvc_graph
+
 
 class StringToIntMapper:
     """
@@ -119,8 +121,28 @@ class StateGraph:
                 self.dvc_graph.add_edge(DVCEdge(v, v_middle))
                 self.dvc_graph.add_edge(DVCEdge(v_middle, v_prime))
 
+
+        ### Step 3: Translate to pynauty graph
+        color_to_vertices = defaultdict(set)
+        for vertex in self._dvc_graph.vertices:
+            color_to_vertices[vertex.color].add(vertex)
+        vertex_partitioning = [set([vertex.id for vertex in vertices]) for _, vertices in color_to_vertices.items()]
+        #print(vertex_partitioning)
+        self._nauty_graph = NautyGraph(
+            number_of_vertices=len(self._dvc_graph.vertices), 
+            directed=True,
+            adjacency_dict={source.id: [edge.target.id for edge in edges] for source, edges in self._dvc_graph.adj_list.items()},
+            vertex_coloring=vertex_partitioning)
+        #print(self._nauty_graph)
+        self._nauty_certificate = nauty_certificate(self._nauty_graph)
+        #print(self._nauty_certificate)
+
     def __str__(self):
         return f"StateGraph({str(self._dec_graph)})"
+    
+    @property 
+    def state(self):
+        return self._state
 
     @property 
     def dec_graph(self):
@@ -129,3 +151,7 @@ class StateGraph:
     @property 
     def dvc_graph(self):
         return self._dvc_graph
+    
+    @property 
+    def nauty_certificate(self):
+        return self._nauty_certificate

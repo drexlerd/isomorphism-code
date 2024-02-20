@@ -91,7 +91,7 @@ class DirectedEdgeColoredGraph:
             dot.node(str(vertex.id), str(vertex.color.concrete))
         for _, edges in self._adj_list.items():
             for edge in edges:
-                dot.edge(str(edge.source.id), str(edge.target.id), str(edge.color.concrete))
+                dot.edge(str(edge.source.id), str(edge.target.id), str(edge.color))
         dot.render("output.gc", view=True)
     
     @property
