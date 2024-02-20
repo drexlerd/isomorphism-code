@@ -33,8 +33,9 @@ class Driver:
         state_graphs = dict()
         for state in state_space.get_states():
             state_graph = StateGraph(state)
-            print(state_graph)
+            state_graph.graph.to_dot()
             state_graphs[state] = state_graph
+            break
 
         logger.info("Started generating Aut(G)")
 

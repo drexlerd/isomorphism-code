@@ -1,5 +1,6 @@
-from typing import MutableSet, Dict
+from graphviz import Digraph
 
+from typing import MutableSet, Dict
 from dataclasses import dataclass
 
 from .color import Color
@@ -12,17 +13,17 @@ class Vertex:
 
     def __eq__(self, other : "Vertex"):
         return self._id == other._id
-    
+
     def __hash__(self):
         return hash(self._id)
-    
+
     def __str__(self):
         return f"({str(self._id)},{str(self._color)})"
 
     @property
     def id(self):
         return self._id
-    
+  
     @property 
     def color(self):
         return self._color
@@ -79,6 +80,21 @@ class DirectedEdgeColoredGraph:
         edges = {str(v) : [str(e) for e in edges_from_v] for v, edges_from_v in self._adj_list.items()}
         return f"DirectedEdgeColoredGraph(Vertices({vertices}),AdjList({edges}))"
     
+    def to_dot(self):
+        """
+        Return a dot representation of the graph.
+        """
+        dot = Digraph(comment='DirectedEdgeColoredGraph')
+        for vertex in self._vertices:
+            dot.node(str(vertex.id), str(vertex.color.concrete))
+        for source, edges in self._adj_list.items():
+            for edge in edges:
+                print(edge.color)
+                dot.edge(str(edge.source.id), str(edge.target.id), str(edge.color.concrete))
+
+        print(dot.source)
+        dot.render("output.gc", view=True)
+    
     @property
     def vertices(self):
         return self._vertices
@@ -86,3 +102,4 @@ class DirectedEdgeColoredGraph:
     @property
     def adj_list(self):
         return self._adj_list
+
