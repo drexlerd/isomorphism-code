@@ -11,6 +11,7 @@
         locatable - object
         package - locatable
         truck - locatable
+        object
     )
 
     (:constants
@@ -22,6 +23,10 @@
         (carrying ?x1 - truck ?x2 - package)
         (empty ?x1 - truck)
         (adjacent ?x1 - cell ?x2 - cell)
+    )
+
+    (:functions
+        
     )
 
     
