@@ -52,6 +52,8 @@ class StateGraph:
         for pred in problem.domain.predicates:
             color_mapper.add(pred.name)
             color_mapper.add(pred.name + "_g")
+        for const in problem.domain.constants:
+            color_mapper.add(const.name)
 
 
         ### Step 1: Create Directed Edge Colored Graph (DECGraph)
@@ -104,6 +106,12 @@ class StateGraph:
                 v = DECVertex(id=vertex_mapper.str_to_int(goal_atom.terms[0].name), color=Color(0, goal_atom.terms[0].name))
                 v_prime = DECVertex(id=vertex_mapper.str_to_int(goal_atom.terms[1].name), color=Color(0, goal_atom.terms[1].name))
                 self._dec_graph.add_edge(DECEdge(v, v_prime, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
+
+        # Add constant edges
+        for const in problem.domain.constants:
+            const_name = const.name
+            v = DECVertex(id=vertex_mapper.str_to_int(const_name), color=Color(0, const_name))
+            self._dec_graph.add_edge(DECEdge(v, v, Color(color_mapper.str_to_int(const_name), const_name)))
 
 
         ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
