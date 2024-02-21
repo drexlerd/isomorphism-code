@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from datetime import datetime
 
@@ -12,7 +13,7 @@ def initialize_logger(name: str):
 
 def add_console_handler(logger: logging.Logger):
     global formatter
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     return handler
