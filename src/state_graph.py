@@ -6,8 +6,8 @@ from collections import defaultdict
 
 from .mimir_utils import flatten_types
 from .color import Color
-from .dec_graph import DECVertex as DECVertex, DECEdge as DECEdge, DECGraph as DECGraph
-from .dvc_graph import DVCVertex as DVCVertex, DVCEdge as DVCEdge, DVCGraph as DVCGraph
+from .dec_graph import DECVertex, DECEdge, DECGraph
+from .dvc_graph import DVCVertex, DVCEdge, DVCGraph
 
 
 class StringToIntMapper:
