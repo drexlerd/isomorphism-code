@@ -73,14 +73,11 @@ class StateGraph:
 
         # Add vertices
         for obj in problem.objects:
-            v = DECVertex(id=vertex_mapper.str_to_int(obj.name), color=Color(0, obj.name))
+            # Create color based on the type
+            # Note: we currently assume that each object has a single parent type
+            # To support "either" types, we must compute an aggregate
+            v = DECVertex(id=vertex_mapper.str_to_int(obj.name), color=Color(color_mapper.str_to_int(obj.type.name), obj.name))
             self._dec_graph.add_vertex(v)
-
-        # Add type edges
-        for obj in problem.objects:
-            v = DECVertex(id=vertex_mapper.str_to_int(obj.name), color=Color(0, obj.name))
-            for typ in flatten_types(obj.type):
-                self._dec_graph.add_edge(DECEdge(v, v, Color(color_mapper.str_to_int(typ.name), typ.name)))
 
         # Add atom edges 
         for dynamic_atom in state.get_atoms():
@@ -125,8 +122,8 @@ class StateGraph:
 
 
         ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
-
-        # Create empty directed vertex colored graph
+            
+        ### More compact encoding with loops integrated into vertex colors
         self._dvc_graph = DVCGraph(state)
         for vertex in self._dec_graph.vertices:
             self._dvc_graph.add_vertex(DVCVertex(vertex.id, vertex.color))
@@ -147,7 +144,7 @@ class StateGraph:
             color_to_vertices[vertex.color].add(vertex)
         vertex_partitioning = [set([vertex.id for vertex in vertices]) for _, vertices in color_to_vertices.items()]
         self._nauty_graph = NautyGraph(
-            number_of_vertices=len(self._dvc_graph.vertices), 
+            number_of_vertices=len(self._dvc_graph.vertices),
             directed=True,
             adjacency_dict={source.id: [edge.target.id for edge in edges] for source, edges in self._dvc_graph.adj_list.items()},
             vertex_coloring=vertex_partitioning)
