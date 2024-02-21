@@ -77,7 +77,7 @@ class DVCGraph:
         """
         dot = Digraph(comment='DirectedVertexColoredGraph')
         for vertex in self._vertices:
-            dot.node(str(vertex.id), str(vertex.color))
+            dot.node(str(vertex.id), f"{str(vertex.id)}-{str(vertex.color)}")
         for _, edges in self._adj_list.items():
             for edge in edges:
                 dot.edge(str(edge.source.id), str(edge.target.id))

@@ -21,6 +21,8 @@ class Driver:
         add_console_handler(self._logger)
         
         if self._dump_dot:
+            Path("outputs/debug/decs").mkdir(parents=True, exist_ok=True)
+            Path("outputs/debug/dvcs").mkdir(parents=True, exist_ok=True)
             Path("outputs/decs").mkdir(parents=True, exist_ok=True)
             Path("outputs/dvcs").mkdir(parents=True, exist_ok=True)
 
@@ -57,13 +59,17 @@ class Driver:
         num_vertices_dvc_graph = 0
         max_num_edges_dec_graph = 0
         max_num_edges_dvc_graph = 0
-        for state in tqdm(state_space.get_states(), file=sys.stdout):
+        for i, state in enumerate(tqdm(state_space.get_states(), file=sys.stdout)):
+            if i not in range(2,7+1): continue
             state_graph = StateGraph(state)
             state_graphs[state] = state_graph
             max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum([len(edges) for edges in state_graph.dec_graph.adj_list.values()]))
             max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum([len(edges) for edges in state_graph.dvc_graph.adj_list.values()]))
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
             num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
+            if self._dump_dot:
+                state_graph.dec_graph.to_dot(f"outputs/debug/decs/{i}-output.gc")
+                state_graph.dvc_graph.to_dot(f"outputs/debug/dvcs/{i}-output.gc")
 
         self._logger.info("Finished generating state graph G")
         end_time = time.time()
@@ -76,8 +82,8 @@ class Driver:
         print("Maximum number of edges in DVC graph:", max_num_edges_dvc_graph)
 
         equivalence_classes = defaultdict(set)
-        for sg1 in state_graphs.values():
-            equivalence_classes[sg1.nauty_certificate].add(sg1)
+        for sg in state_graphs.values():
+            equivalence_classes[sg.nauty_certificate].add(sg)
         print("Number of equivalence classes:", len(equivalence_classes))
 
         if self._dump_dot:
