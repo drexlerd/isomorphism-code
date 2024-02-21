@@ -1,7 +1,7 @@
 from pymimir import State
 from pynauty import Graph as NautyGraph, certificate as nauty_certificate
 
-from typing import List
+from typing import List, MutableSet
 from collections import defaultdict
 
 from .mimir_utils import flatten_types
@@ -29,7 +29,17 @@ class StringToIntMapper:
 
     def int_to_str(self, number : int):
         return self._int_to_str[number]
-
+    
+    def strs_to_int(self, strings: MutableSet[str]):
+        """ Compute a perfect hash value for a given non-empty set of labels.
+        """
+        assert(strings)
+        number = 0
+        factor = 1
+        for string in sorted(list(strings)):
+            number += factor * self._str_to_int[string]
+            factor *= len(self._str_to_int)
+        return number
 
 
 class StateGraph:
