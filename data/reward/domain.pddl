@@ -22,10 +22,6 @@
         (adjacent ?x1 - cell ?x2 - cell)
     )
 
-    (:functions
-        
-    )
-
     
 
     

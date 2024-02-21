@@ -37,8 +37,12 @@ class Driver:
         domain = domain_parser.parse()
         problem_parser = ProblemParser(str(self._problem_file_path))
         problem = problem_parser.parse(domain)
-        state_space = StateSpace.new(problem, LiftedSuccessorGenerator(problem))
+        max_states = 100000
+        state_space = StateSpace.new(problem, LiftedSuccessorGenerator(problem), max_expanded=max_states)
         self._logger.info("Finished generating state graph G")
+        if (state_space is None):
+            print("Number of states:", max_states)
+            raise Exception(f"Reached limit of {max_states} states. Aborting!")
         print("Number of states:", state_space.num_states())
         print("Number of transitions:", state_space.num_transitions())
         print("Number of deadend states:", state_space.num_dead_end_states())
@@ -83,7 +87,3 @@ class Driver:
                 for i, state_graph in enumerate(equivalence_class):
                     state_graph.dec_graph.to_dot(f"outputs/decs/{class_id}/{i}.gc")
                     state_graph.dvc_graph.to_dot(f"outputs/dvcs/{class_id}/{i}.gc")
-
-
-    
-

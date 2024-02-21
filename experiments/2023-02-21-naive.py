@@ -38,11 +38,41 @@ if REMOTE:
         cpus_per_task=1,
         setup=TetralithEnvironment.DEFAULT_SETUP,
         extra_options="#SBATCH --account=snic2022-5-341")
-    SUITE = ["gripper"]
+    SUITE = [
+        "barman", 
+        "blocks_3",
+        "blocks_4",
+        "blocks_4_clear",
+        "blocks_4_on",
+        "childsnack",
+        "delivery",
+        "grid",
+        "gripper",
+        "logistics",
+        "miconic",
+        "reward",
+        "spanner",
+        "visitall",
+    ]
     TIME_LIMIT = 3 * 3600
 else:
     ENV = LocalEnvironment(processes=4)
-    SUITE = ["gripper:p-1-0.pddl"]
+    SUITE = [
+        "barman:p-2-2-2-0.pddl", 
+        "blocks_3:p-1-0.pddl",
+        "blocks_4:p-1-0.pddl",
+        "blocks_4_clear:p-1-0.pddl",
+        "blocks_4_on:p-1-0.pddl",
+        "childsnack:p-1-1.0-0.0-1-0.pddl",
+        "delivery:instance_1_1_1_0.pddl",
+        "grid:p-0-0-100-1-3-3-0.pddl",
+        "gripper:p-1-0.pddl",
+        "logistics:p-2-2-2-2-2-0.pddl",
+        "miconic:p-2-1-0.pddl",
+        "reward:instance_2x2_0.pddl",
+        "spanner:p-1-1-1-0.pddl",
+        "visitall:p-1-0.5-2-0.pddl",
+    ]
     TIME_LIMIT = 180
 ATTRIBUTES = [
     Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
