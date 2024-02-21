@@ -1,4 +1,4 @@
-from pymimir import *
+from pymimir import State
 from pynauty import Graph as NautyGraph, certificate as nauty_certificate
 
 from typing import List
@@ -6,8 +6,8 @@ from collections import defaultdict
 
 from .mimir_utils import flatten_types
 from .color import Color
-from .directed_edge_colored_graph import Vertex as DECVertex, Edge as DECEdge, DirectedEdgeColoredGraph as DECGraph
-from .directed_vertex_colored_graph import Vertex as DVCVertex, Edge as DVCEdge, DirectedVertexColoredGraph as DVCGraph
+from .dec_graph import DECVertex as DECVertex, DECEdge as DECEdge, DECGraph as DECGraph
+from .dvc_graph import DVCVertex as DVCVertex, DVCEdge as DVCEdge, DVCGraph as DVCGraph
 
 
 class StringToIntMapper:
@@ -54,7 +54,7 @@ class StateGraph:
             color_mapper.add(pred.name + "_g")
 
 
-        ### Step 1: Create Directed Edge Colored Graph
+        ### Step 1: Create Directed Edge Colored Graph (DECGraph)
 
         # Create empty directed edge colored graph
         self._dec_graph = DECGraph(state)
@@ -106,7 +106,7 @@ class StateGraph:
                 self._dec_graph.add_edge(DECEdge(v, v_prime, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
 
 
-        ### Step 2: Create Directed Vertex Colored Graph
+        ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
 
         # Create empty directed vertex colored graph
         self._dvc_graph = DVCGraph(state)
@@ -123,19 +123,18 @@ class StateGraph:
 
 
         ### Step 3: Translate to pynauty graph
+                
         color_to_vertices = defaultdict(set)
         for vertex in self._dvc_graph.vertices:
             color_to_vertices[vertex.color].add(vertex)
         vertex_partitioning = [set([vertex.id for vertex in vertices]) for _, vertices in color_to_vertices.items()]
-        #print(vertex_partitioning)
         self._nauty_graph = NautyGraph(
             number_of_vertices=len(self._dvc_graph.vertices), 
             directed=True,
             adjacency_dict={source.id: [edge.target.id for edge in edges] for source, edges in self._dvc_graph.adj_list.items()},
             vertex_coloring=vertex_partitioning)
-        #print(self._nauty_graph)
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
-        #print(self._nauty_certificate)
+
 
     def __str__(self):
         return f"StateGraph({str(self._dec_graph)})"

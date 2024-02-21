@@ -4,7 +4,7 @@ import argparse
 
 from pathlib import Path 
 
-from src.exact.driver import Driver
+from src.exact import Driver
 
 
 def add_pddl_options(arg_parser: argparse.ArgumentParser):
@@ -17,6 +17,10 @@ def add_verbosity_option(arg_parser: argparse.ArgumentParser):
     level_help = "Set log level for {0}. Allowed values: {1}".format
     arg_parser.add_argument("--verbosity", type=str, choices=log_levels, default="INFO", help=level_help("src", log_levels))
 
+def add_dump_dot_option(arg_parser: argparse.ArgumentParser):
+    arg_parser.add_argument("--dump-dot", action="store_true", help="If specified, files will be written to disk.")
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Abstraction generator.")
@@ -28,11 +32,13 @@ if __name__ == "__main__":
     exact_parser = subparsers.add_parser("exact", help="Exact abstraction generator.")
     add_pddl_options(exact_parser)
     add_verbosity_option(exact_parser)
+    add_dump_dot_option(exact_parser)
 
     # Sub parser 2: wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
     add_pddl_options(wl_parser)
     add_verbosity_option(wl_parser)
+    add_dump_dot_option(wl_parser)
     wl_parser.add_argument("-k", "--dimension", type=int, help="Dimension of Weisfeiler-Leman", required=True)
 
     args = parser.parse_args()
@@ -40,9 +46,10 @@ if __name__ == "__main__":
     # Run the abstraction generator
     if args.type == "exact":
         driver = Driver(
-            Path(args.domain_file_path).absolute(), 
+            Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
-            args.verbosity) 
+            args.verbosity,
+            args.dump_dot) 
         driver.run()
     elif args.type == "wl":
         pass

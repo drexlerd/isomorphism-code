@@ -1,7 +1,9 @@
-from pymimir import *
+from pymimir import Type
 
 
 def flatten_types(type : Type):
+    """ Flatten the type hierarchy into a list for a given type.
+    """
     result_types = []
 
     cur_type = type

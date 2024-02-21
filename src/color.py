@@ -1,6 +1,8 @@
 
 
 class Color:
+    """ A color is just an integer with attached meaning for interpretation.
+    """
     def __init__(self, abstract: int, concrete: str):
         self._abstract = abstract
         self._concrete = concrete
