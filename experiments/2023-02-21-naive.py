@@ -37,7 +37,7 @@ if REMOTE:
         memory_per_cpu="3G",
         cpus_per_task=1,
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        extra_options="#SBATCH --account=snic2022-5-341")
+        extra_options="#SBATCH --account=naiss2023-5-314")
     SUITE = [
         "barman", 
         "blocks_3",
@@ -54,7 +54,7 @@ if REMOTE:
         "spanner",
         "visitall",
     ]
-    TIME_LIMIT = 3 * 3600
+    TIME_LIMIT = 900
 else:
     ENV = LocalEnvironment(processes=4)
     SUITE = [
@@ -73,7 +73,7 @@ else:
         "spanner:p-1-1-1-0.pddl",
         "visitall:p-1-0.5-2-0.pddl",
     ]
-    TIME_LIMIT = 180
+    TIME_LIMIT = 10
 ATTRIBUTES = [
     Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_transitions", absolute=True, min_wins=True, scale="linear"),
