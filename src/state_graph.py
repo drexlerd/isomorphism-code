@@ -4,7 +4,6 @@ from pynauty import Graph as NautyGraph, certificate as nauty_certificate
 from typing import List, MutableSet
 from collections import defaultdict
 
-from .mimir_utils import flatten_types
 from .color import Color
 from .dec_graph import DECVertex, DECEdge, DECGraph
 from .dvc_graph import DVCVertex, DVCEdge, DVCGraph
@@ -155,16 +154,15 @@ class StateGraph:
                 
         color_to_vertices = defaultdict(set)
         for vertex in self._dvc_graph.vertices:
-            color_to_vertices[vertex.color].add(vertex)
-        vertex_partitioning = [set([vertex.id for vertex in vertices]) for _, vertices in color_to_vertices.items()]
+            color_to_vertices[vertex.color.abstract].add(vertex.id)
+        color_to_vertices = dict(sorted(color_to_vertices.items()))
+        vertex_partitioning = [vertex_ids for vertex_ids in color_to_vertices.values()]
         self._nauty_graph = NautyGraph(
             number_of_vertices=len(self._dvc_graph.vertices),
             directed=True,
             adjacency_dict={source.id: [edge.target.id for edge in edges] for source, edges in self._dvc_graph.adj_list.items()},
             vertex_coloring=vertex_partitioning)
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
-
-        print(self._nauty_graph)
 
 
     def __str__(self):

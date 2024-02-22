@@ -21,8 +21,6 @@ class Driver:
         add_console_handler(self._logger)
         
         if self._dump_dot:
-            Path("outputs/debug/decs").mkdir(parents=True, exist_ok=True)
-            Path("outputs/debug/dvcs").mkdir(parents=True, exist_ok=True)
             Path("outputs/decs").mkdir(parents=True, exist_ok=True)
             Path("outputs/dvcs").mkdir(parents=True, exist_ok=True)
 
@@ -42,6 +40,7 @@ class Driver:
         max_states = 100000
         state_space = StateSpace.new(problem, LiftedSuccessorGenerator(problem), max_expanded=max_states)
         self._logger.info("Finished generating state graph G")
+        print()
         if (state_space is None):
             print("Number of states:", max_states)
             raise Exception(f"Reached limit of {max_states} states. Aborting!")
@@ -60,18 +59,16 @@ class Driver:
         max_num_edges_dec_graph = 0
         max_num_edges_dvc_graph = 0
         for i, state in enumerate(tqdm(state_space.get_states(), file=sys.stdout)):
-            if i not in range(2,7+1): continue
             state_graph = StateGraph(state)
             state_graphs[state] = state_graph
             max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum([len(edges) for edges in state_graph.dec_graph.adj_list.values()]))
             max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum([len(edges) for edges in state_graph.dvc_graph.adj_list.values()]))
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
             num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
-            if self._dump_dot:
-                state_graph.dec_graph.to_dot(f"outputs/debug/decs/{i}-output.gc")
-                state_graph.dvc_graph.to_dot(f"outputs/debug/dvcs/{i}-output.gc")
 
         self._logger.info("Finished generating state graph G")
+        print()
+
         end_time = time.time()
         runtime = end_time - start_time
         print(f"Total time: {runtime:.2f} seconds")
