@@ -53,7 +53,7 @@ class DVCGraph:
     def __init__(self, state : State):
         self._state = state
         self._vertices: Dict[int, DVCVertex] = dict()
-        self._adj_list: Dict[DVCVertex, MutableSet[DVCEdge]] = dict()
+        self._adj_list: Dict[int, MutableSet[DVCEdge]] = dict()
 
     def add_vertex(self, vertex : DVCVertex):
         """ Add a vertex *uniquely* to the graph.
