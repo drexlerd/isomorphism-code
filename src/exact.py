@@ -8,6 +8,7 @@ from pymimir import DomainParser, ProblemParser, StateSpace, LiftedSuccessorGene
 from tqdm import tqdm
 
 from .state_graph import StateGraph
+from .state_space import StateSpace as XStateSpace
 from .logger import initialize_logger, add_console_handler
 
 
@@ -50,6 +51,10 @@ class Driver:
         self._logger.info("Started generating StateSpace")
         state_space = StateSpace.new(problem, successor_generator, max_expanded=2147483647)
         self._logger.info("Finished generating StateSpace")
+        print("Number of states:", len(state_space.get_states()))
+        print("Number of transitions:", state_space.num_transitions())
+        print("Number of deadend states:", state_space.num_dead_end_states())
+        print("Number of goal states:", state_space.num_goal_states())
         print()
 
 
@@ -90,15 +95,8 @@ class Driver:
         end_time = time.time()
         runtime = end_time - start_time
         self._logger.info("Finished generating Aut(G)")
-        print()
-
-
         print(f"Total time: {runtime:.2f} seconds")
         print(f"Total time per state: {runtime / num_generated_states:.2f} seconds")
-        print("Number of states:", len(state_space.get_states()))
-        print("Number of transitions:", state_space.num_transitions())
-        print("Number of deadend states:", state_space.num_dead_end_states())
-        print("Number of goal states:", state_space.num_goal_states())
         print("Number of generated states:", num_generated_states)
         print("Number of equivalence classes:", len(equivalence_classes))
         print("Number of vertices in DEC graph:", num_vertices_dec_graph)
