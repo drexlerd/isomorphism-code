@@ -30,57 +30,57 @@ class DVCVertex:
 
     
 class DVCEdge:
-    def __init__(self, source: DVCVertex, target: DVCVertex):
-        self._source = source
-        self._target = target
+    def __init__(self, source_id: int, target_id: int):
+        self._source_id = source_id
+        self._target_id = target_id
 
     def __eq__(self, other : "DVCEdge"):
-        return (self._source == other._source and self._target == other._target)
+        return (self._source_id == other._source_id and self._target_id == other._target_id)
 
     def __hash__(self):
-        return hash((self._source, self._target))
+        return hash((self._source_id, self._target_id))
 
     @property 
-    def source(self):
-        return self._source
+    def source_id(self):
+        return self._source_id
     
     @property 
-    def target(self):
-        return self._target
+    def target_id(self):
+        return self._target_id
     
 
 class DVCGraph:
     def __init__(self, state : State):
         self._state = state
-        self._vertices: MutableSet[DVCVertex] = set()
+        self._vertices: Dict[int, DVCVertex] = dict()
         self._adj_list: Dict[DVCVertex, MutableSet[DVCEdge]] = dict()
 
     def add_vertex(self, vertex : DVCVertex):
         """ Add a vertex *uniquely* to the graph.
         """
-        if vertex in self._vertices:
+        if vertex.id in self._vertices:
             raise Exception("Vertex with same id already exists.")
-        self._vertices.add(vertex)
-        self._adj_list[vertex] = set()
+        self._vertices[vertex.id] = vertex
+        self._adj_list[vertex.id] = set()
 
     def add_edge(self, edge : DVCEdge):
         """ Add an edge *uniquely* to the graph.
         """
-        if edge.source not in self._adj_list:
+        if edge.source_id not in self._adj_list:
             raise Exception("Source node of edge does not exist.")
-        if edge in self._adj_list[edge.source]:
+        if edge in self._adj_list[edge.source_id]:
             raise Exception("Edge with same source, target and color already exists.")
-        self._adj_list[edge.source].add(edge)
+        self._adj_list[edge.source_id].add(edge)
 
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.
         """
         dot = Digraph(comment='DirectedVertexColoredGraph')
-        for vertex in self._vertices:
+        for vertex in self._vertices.values():
             dot.node(str(vertex.id), f"{str(vertex.id)}-{str(vertex.color)}")
         for _, edges in self._adj_list.items():
             for edge in edges:
-                dot.edge(str(edge.source.id), str(edge.target.id))
+                dot.edge(str(edge.source_id), str(edge.target_id))
         dot.render(output_file_path, view=False, quiet=True)
 
     @property

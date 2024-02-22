@@ -9,7 +9,7 @@ from .dec_graph import DECVertex, DECEdge, DECGraph
 from .dvc_graph import DVCVertex, DVCEdge, DVCGraph
 
 
-class StringToIntMapper:
+class NameToIndexMapper:
     """
     Perfect has function to map a list of types to a color
     """
@@ -52,10 +52,10 @@ class StateGraph:
 
         # Bookkeeping
         problem = state.get_problem()
-        vertex_mapper = StringToIntMapper()
+        vertex_mapper = NameToIndexMapper()
         for obj in problem.objects:
             vertex_mapper.add(obj.name)
-        color_mapper = StringToIntMapper()
+        color_mapper = NameToIndexMapper()
         for typ in problem.domain.types:
             color_mapper.add(typ.name)
         for pred in problem.domain.predicates:
@@ -103,10 +103,8 @@ class StateGraph:
             if predicate_arity > 2:
                 raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if predicate_arity == 1:
-                v = DECVertex(
-                    id=vertex_mapper.str_to_int(goal_atom.terms[0].name), 
-                    color=Color(color_mapper.str_to_int(goal_atom.terms[0].type.name), goal_atom.terms[0].name))
-                self._dec_graph.add_edge(DECEdge(v, v, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
+                v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
+                self._dec_graph.add_edge(DECEdge(v_id, v_id, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
             if predicate_arity == 2:
                 if predicate_name == "=":
                     # Skip equality
@@ -134,21 +132,21 @@ class StateGraph:
                 v_middle = DVCVertex(len(self.dvc_graph.vertices), edge.color)
                 v_prime = DVCVertex(edge.target_id, self._dec_graph.vertices[edge.target_id].color)
                 self.dvc_graph.add_vertex(v_middle)
-                self.dvc_graph.add_edge(DVCEdge(v, v_middle))
-                self.dvc_graph.add_edge(DVCEdge(v_middle, v_prime))
+                self.dvc_graph.add_edge(DVCEdge(v.id, v_middle.id))
+                self.dvc_graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
 
 
         ### Step 3: Translate to pynauty graph
                 
         color_to_vertices = defaultdict(set)
-        for vertex in self._dvc_graph.vertices:
+        for vertex in self._dvc_graph.vertices.values():
             color_to_vertices[vertex.color.abstract].add(vertex.id)
         color_to_vertices = dict(sorted(color_to_vertices.items()))
         vertex_partitioning = [vertex_ids for vertex_ids in color_to_vertices.values()]
         self._nauty_graph = NautyGraph(
             number_of_vertices=len(self._dvc_graph.vertices),
             directed=True,
-            adjacency_dict={source.id: [edge.target.id for edge in edges] for source, edges in self._dvc_graph.adj_list.items()},
+            adjacency_dict={source_id: [edge.target_id for edge in edges] for source_id, edges in self._dvc_graph.adj_list.items()},
             vertex_coloring=vertex_partitioning)
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
 

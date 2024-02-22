@@ -75,18 +75,15 @@ class DECGraph:
             raise Exception("Edge with same source, target and color already exists.")
         self._adj_list[edge.source_id].add(edge)
 
-    def get_vertex(self, id: int):
-        return self._vertices[id]
-
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.
         """
         dot = Digraph(comment='DirectedEdgeColoredGraph')
-        for vertex in self._vertices:
+        for vertex in self._vertices.values():
             dot.node(str(vertex.id), f"{str(vertex.id)}-{str(vertex.color)}")
         for _, edges in self._adj_list.items():
             for edge in edges:
-                dot.edge(str(edge.source.id), str(edge.target.id), str(edge.color))
+                dot.edge(str(edge.source_id), str(edge.target_id), str(edge.color))
         dot.render(output_file_path, view=False, quiet=True)
     
     @property
