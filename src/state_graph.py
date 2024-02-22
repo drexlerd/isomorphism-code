@@ -109,32 +109,32 @@ class StateGraph:
                             labels={dynamic_atom.predicate.name})))
 
         # Add goal atom edges
-        #for goal_literal in problem.goal:
-        #    if goal_literal.negated:
-        #        raise Exception("Negated goal atoms currently not supported.")
-        #    goal_atom = goal_literal.atom
-        #    predicate_arity = goal_atom.predicate.arity
-        #    predicate_name = goal_atom.predicate.name + "_g"
-        #    if predicate_arity > 2:
-        #        raise Exception("Got predicate of arity 2! Implementation does not support this.")
-        #    if predicate_arity == 1:
-        #        v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
-        #        self._dec_graph.add_edge(
-        #            DECEdge(v_id, v_id,
-        #                Color(
-        #                    value=color_mapper.str_to_int(predicate_name),
-        #                    labels={predicate_name})))
-        #    if predicate_arity == 2:
-        #        if predicate_name == "=":
-        #            # Skip equality
-        #            continue
-        #        v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
-        #        v_prime_id = vertex_mapper.str_to_int(goal_atom.terms[1].name)
-        #        self._dec_graph.add_edge(
-        #            DECEdge(v_id, v_prime_id,
-        #                Color(
-        #                    value=color_mapper.str_to_int(predicate_name),
-        #                    labels={predicate_name})))
+        for goal_literal in problem.goal:
+            if goal_literal.negated:
+                raise Exception("Negated goal atoms currently not supported.")
+            goal_atom = goal_literal.atom
+            predicate_arity = goal_atom.predicate.arity
+            predicate_name = goal_atom.predicate.name + "_g"
+            if predicate_arity > 2:
+                raise Exception("Got predicate of arity 2! Implementation does not support this.")
+            if predicate_arity == 1:
+                v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
+                self._dec_graph.add_edge(
+                    DECEdge(v_id, v_id,
+                        Color(
+                            value=color_mapper.str_to_int(predicate_name),
+                            labels={predicate_name})))
+            if predicate_arity == 2:
+                if predicate_name == "=":
+                    # Skip equality
+                    continue
+                v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
+                v_prime_id = vertex_mapper.str_to_int(goal_atom.terms[1].name)
+                self._dec_graph.add_edge(
+                    DECEdge(v_id, v_prime_id,
+                        Color(
+                            value=color_mapper.str_to_int(predicate_name),
+                            labels={predicate_name})))
 
         # Add constant edges
         for const in problem.domain.constants:
