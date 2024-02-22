@@ -89,7 +89,7 @@ ATTRIBUTES = [
 
 ]
 
-MEMORY_LIMIT = (16 * 3000) * 0.98
+MEMORY_LIMIT = 3000
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
