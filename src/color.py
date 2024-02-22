@@ -1,26 +1,44 @@
 
+from typing import MutableSet
 
 class Color:
     """ A color is just an integer with attached meaning for interpretation.
     """
-    def __init__(self, abstract: int, concrete: str):
-        self._abstract = abstract
-        self._concrete = concrete
+    def __init__(self, value: int, labels: MutableSet[str], info: str = ""):
+        """
+        Args:
+            value: the color representation as integer value
+            labels: the color representation as strings
+            info: additional information for visualization
+        """
+        self._value = value
+        self._labels = labels
+        self._info = info
 
     def __eq__(self, other : "Color"):
-        return self._abstract == other._abstract
+        return self._value == other._value
 
     def __hash__(self):
-        return hash(self._abstract)
+        return hash(self._value)
     
     def __str__(self):
-        return f"{self._abstract}:{self._concrete}"
+        """ Create a string representation with optional info.
+        """
+        labels = "{" + ", ".join(self._labels) + "}"
+        representation = f"{self._value}={labels}"
+        if self._info:
+            representation += f" ({self._info})"
+        return representation
 
     @property 
-    def abstract(self):
-        return self._abstract
+    def value(self):
+        return self._value
     
     @property
-    def concrete(self):
-        return self._concrete
+    def labels(self):
+        return self._labels
+    
+    @property
+    def info(self):
+        return self._info
     

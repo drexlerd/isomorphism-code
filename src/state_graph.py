@@ -77,7 +77,12 @@ class StateGraph:
             # Create color based on the type
             # Note: we currently assume that each object has a single parent type
             # To support "either" types, we must compute an aggregate
-            v = DECVertex(id=vertex_mapper.str_to_int(obj.name), color=Color(color_mapper.str_to_int(obj.type.name), obj.name))
+            v = DECVertex(
+                id=vertex_mapper.str_to_int(obj.name),
+                color=Color(
+                    value=color_mapper.str_to_int(obj.type.name),
+                    labels={obj.type.name},
+                    info=obj.name))
             self._dec_graph.add_vertex(v)
 
         # Add atom edges 
@@ -86,14 +91,22 @@ class StateGraph:
                 raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if dynamic_atom.predicate.arity == 1:
                 v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
-                self._dec_graph.add_edge(DECEdge(v_id, v_id, Color(color_mapper.str_to_int(dynamic_atom.predicate.name), dynamic_atom.predicate.name)))
+                self._dec_graph.add_edge(
+                    DECEdge(v_id, v_id, 
+                        Color(
+                            value=color_mapper.str_to_int(dynamic_atom.predicate.name),
+                            labels={dynamic_atom.predicate.name})))
             if dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
                     continue
                 v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
                 v_prime_id = vertex_mapper.str_to_int(dynamic_atom.terms[1].name)
-                self._dec_graph.add_edge(DECEdge(v_id, v_prime_id, Color(color_mapper.str_to_int(dynamic_atom.predicate.name), dynamic_atom.predicate.name)))
+                self._dec_graph.add_edge(
+                    DECEdge(v_id, v_prime_id,
+                        Color(
+                            value=color_mapper.str_to_int(dynamic_atom.predicate.name),
+                            labels={dynamic_atom.predicate.name})))
 
         # Add goal atom edges
         for goal_literal in problem.goal:
@@ -106,20 +119,32 @@ class StateGraph:
                 raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if predicate_arity == 1:
                 v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
-                self._dec_graph.add_edge(DECEdge(v_id, v_id, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
+                self._dec_graph.add_edge(
+                    DECEdge(v_id, v_id, 
+                        Color(
+                            value=color_mapper.str_to_int(predicate_name),
+                            labels={predicate_name})))
             if predicate_arity == 2:
                 if predicate_name == "=":
                     # Skip equality
                     continue
                 v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
                 v_prime_id = vertex_mapper.str_to_int(goal_atom.terms[1].name)
-                self._dec_graph.add_edge(DECEdge(v_id, v_prime_id, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
+                self._dec_graph.add_edge(
+                    DECEdge(v_id, v_prime_id,
+                        Color(
+                            value=color_mapper.str_to_int(predicate_name),
+                            labels={predicate_name})))
 
         # Add constant edges
         for const in problem.domain.constants:
             const_name = const.name
             v_id = vertex_mapper.str_to_int(const_name)
-            self._dec_graph.add_edge(DECEdge(v_id, v_id, Color(color_mapper.str_to_int(const_name), const_name)))
+            self._dec_graph.add_edge(
+                DECEdge(v_id, v_id,
+                    Color(
+                        value=color_mapper.str_to_int(const_name),
+                        labels={const_name})))
 
 
         ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
@@ -158,7 +183,7 @@ class StateGraph:
                 
         color_to_vertices = defaultdict(set)
         for vertex in self._dvc_graph.vertices.values():
-            color_to_vertices[vertex.color.abstract].add(vertex.id)
+            color_to_vertices[vertex.color.value].add(vertex.id)
         color_to_vertices = dict(sorted(color_to_vertices.items()))
         vertex_partitioning = [vertex_ids for vertex_ids in color_to_vertices.values()]
         self._nauty_graph = NautyGraph(
