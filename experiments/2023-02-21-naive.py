@@ -110,7 +110,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
         # We could also use exp.add_resource().
         run.add_command(
             "main_script_exact",
-            ["python3", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
+            ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
             time_limit=TIME_LIMIT,
             memory_limit=MEMORY_LIMIT,
         )
