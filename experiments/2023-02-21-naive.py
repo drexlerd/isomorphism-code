@@ -35,21 +35,24 @@ if REMOTE:
         memory_per_cpu="3G",
         setup=TetralithEnvironment.DEFAULT_SETUP,
         extra_options="#SBATCH --account=naiss2023-5-314")
+    #SUITE = [
+    #    "barman", 
+    #    "blocks_3",
+    #    "blocks_4",
+    #    "blocks_4_clear",
+    #    "blocks_4_on",
+    #    "childsnack",
+    #    "delivery",
+    #    "grid",
+    #    "gripper",
+    #    "logistics",
+    #    "miconic",
+    #    "reward",
+    #    "spanner",
+    #    "visitall",
+    #]
     SUITE = [
-        "barman", 
-        "blocks_3",
-        "blocks_4",
-        "blocks_4_clear",
-        "blocks_4_on",
-        "childsnack",
-        "delivery",
-        "grid",
-        "gripper",
-        "logistics",
-        "miconic",
-        "reward",
-        "spanner",
-        "visitall",
+        "gripper:p-1-0.pddl",
     ]
     TIME_LIMIT = 900
 else:
