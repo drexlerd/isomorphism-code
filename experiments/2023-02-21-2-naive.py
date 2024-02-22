@@ -72,6 +72,7 @@ else:
     ]
     TIME_LIMIT = 10
 ATTRIBUTES = [
+    "run_dir",
     Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_generated_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_transitions", absolute=True, min_wins=True, scale="linear"),
