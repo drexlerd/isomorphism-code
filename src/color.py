@@ -20,15 +20,12 @@ class Color:
 
     def __hash__(self):
         return hash(self._value)
-    
+
     def __str__(self):
         """ Create a string representation with optional info.
         """
         labels = "{" + ", ".join(self._labels) + "}"
-        representation = f"{self._value}={labels}"
-        if self._info:
-            representation += f" ({self._info})"
-        return representation
+        return f"({self._value}, {labels}, \"{self._info}\")"
 
     @property 
     def value(self):

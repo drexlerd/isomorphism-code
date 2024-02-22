@@ -30,7 +30,7 @@ class NameToIndexMapper:
     def int_to_str(self, number : int):
         assert number in self._int_to_str
         return self._int_to_str[number]
-    
+
     def strs_to_int(self, strings: MutableSet[str]):
         """ Compute a perfect hash value for a given non-empty set of labels.
         """
@@ -45,14 +45,14 @@ class NameToIndexMapper:
 
 class StateGraph:
     """
-    In this version, we give all vertices the same color 
+    In this version, we give all vertices the same color
     and encode type information using loop edges
     """
     def __init__(self, state : State):
         # Store the state for reference
         self._state = state
 
-        # Bookkeeping
+        # Bookkeeping: create mappings from names to integers
         problem = state.get_problem()
         vertex_mapper = NameToIndexMapper()
         for obj in problem.objects:
@@ -85,14 +85,14 @@ class StateGraph:
                     info=obj.name))
             self._dec_graph.add_vertex(v)
 
-        # Add atom edges 
+        # Add atom edges
         for dynamic_atom in state.get_atoms():
             if dynamic_atom.predicate.arity > 2:
                 raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if dynamic_atom.predicate.arity == 1:
                 v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
                 self._dec_graph.add_edge(
-                    DECEdge(v_id, v_id, 
+                    DECEdge(v_id, v_id,
                         Color(
                             value=color_mapper.str_to_int(dynamic_atom.predicate.name),
                             labels={dynamic_atom.predicate.name})))
@@ -120,7 +120,7 @@ class StateGraph:
             if predicate_arity == 1:
                 v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
                 self._dec_graph.add_edge(
-                    DECEdge(v_id, v_id, 
+                    DECEdge(v_id, v_id,
                         Color(
                             value=color_mapper.str_to_int(predicate_name),
                             labels={predicate_name})))
@@ -148,39 +148,27 @@ class StateGraph:
 
 
         ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
-            
+
         ### More compact encoding with loops integrated into vertex colors
         self._dvc_graph = DVCGraph(state)
         for vertex in self._dec_graph.vertices.values():
-            self._dvc_graph.add_vertex(DVCVertex(vertex.id, vertex.color))
+            self._dvc_graph.add_vertex(DVCVertex(
+                id=vertex.id,
+                color=vertex.color))
         for source_id, edges in self._dec_graph.adj_list.items():
-            v = self.dvc_graph.vertices[source_id]
+            # For each transition, encode the label in a helper vertex
             for edge in edges:
-                assert(edge.source_id == source_id)
+                assert edge.source_id == source_id
+                v = self.dvc_graph.vertices[source_id]
                 v_prime = self.dvc_graph.vertices[edge.target_id]
                 v_middle = DVCVertex(len(self.dvc_graph.vertices), edge.color)
                 self.dvc_graph.add_vertex(v_middle)
                 self.dvc_graph.add_edge(DVCEdge(v.id, v_middle.id))
                 self.dvc_graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
-        #for source_id, edges in self._dec_graph.adj_list.items():
-        #    v = self.dvc_graph.vertices[source_id]
-        #    # Combine vertex label and loop labels into a new vertex color
-        #    loops = [edge for edge in edges if edge.source_id == edge.target_id]
-        #    labels = [v.color.concrete] + [loop.color.concrete for loop in loops]
-        #    v.color = Color(color_mapper.strs_to_int(set(labels)), ",".join(labels))
-        #    # For each transition, encode the label in a helper vertex
-        #    transitions = [edge for edge in edges if edge.source_id != edge.target_id]
-        #    for transition in transitions:
-        #        assert(transition.source_id == source_id)
-        #        v_prime = self.dvc_graph.vertices[transition.target_id]
-        #        v_middle = DVCVertex(len(self.dvc_graph.vertices), transition.color)
-        #        self.dvc_graph.add_vertex(v_middle)
-        #        self.dvc_graph.add_edge(DVCEdge(v.id, v_middle.id))
-        #        self.dvc_graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
 
 
         ### Step 3: Translate to pynauty graph
-                
+
         color_to_vertices = defaultdict(set)
         for vertex in self._dvc_graph.vertices.values():
             color_to_vertices[vertex.color.value].add(vertex.id)
@@ -189,26 +177,27 @@ class StateGraph:
         self._nauty_graph = NautyGraph(
             number_of_vertices=len(self._dvc_graph.vertices),
             directed=True,
-            adjacency_dict={source_id: [edge.target_id for edge in edges] for source_id, edges in self._dvc_graph.adj_list.items()},
+            adjacency_dict={source_id: [edge.target_id for edge in edges]
+                            for source_id, edges in self._dvc_graph.adj_list.items()},
             vertex_coloring=vertex_partitioning)
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
 
 
     def __str__(self):
         return f"StateGraph({str(self._dec_graph)})"
-    
-    @property 
+
+    @property
     def state(self):
         return self._state
 
-    @property 
+    @property
     def dec_graph(self):
         return self._dec_graph
-    
-    @property 
+
+    @property
     def dvc_graph(self):
         return self._dvc_graph
-    
-    @property 
+
+    @property
     def nauty_certificate(self):
         return self._nauty_certificate

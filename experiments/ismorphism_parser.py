@@ -3,6 +3,17 @@
 from lab.parser import Parser
 
 
+def error(content, props):
+    if "num_equivalence_classes" in props:
+        props["error"] = "success"
+    else:
+        props["error"] = "fail"
+
+
+def coverage(content, props):
+    props["coverage"] = int("num_equivalence_classes" in props)
+
+
 class IsomorphismParser(Parser):
     def __init__(self):
         super().__init__()
@@ -17,3 +28,5 @@ class IsomorphismParser(Parser):
         self.add_pattern("num_equivalence_classes", r"Number of equivalence classes: (.+)", type=int)
         self.add_pattern("time_total", r"Total time: (.+) seconds", type=float)
         self.add_pattern("time_per_state", r"Total time per state: (.+) seconds", type=float)
+        self.add_function(error)
+        self.add_function(coverage)

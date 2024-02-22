@@ -82,7 +82,7 @@ class DECGraph:
         """
         dot = Digraph(comment='DirectedEdgeColoredGraph')
         for vertex in self._vertices.values():
-            dot.node(str(vertex.id), f"{str(vertex.id)}-{str(vertex.color)}")
+            dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color)}")
         for _, edges in self._adj_list.items():
             for edge in edges:
                 dot.edge(str(edge.source_id), str(edge.target_id), str(edge.color))
