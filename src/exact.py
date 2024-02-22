@@ -46,10 +46,12 @@ class Driver:
         problem = problem_parser.parse(domain)
         successor_generator = LiftedSuccessorGenerator(problem)
 
+
         self._logger.info("Started generating StateSpace")
         state_space = StateSpace.new(problem, successor_generator, max_expanded=2147483647)
         self._logger.info("Finished generating StateSpace")
         print()
+
 
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
@@ -63,12 +65,13 @@ class Driver:
         while queue:
             cur_state = queue.popleft()
 
-            # Prune if represenative already exists
             state_graph = StateGraph(cur_state)
             max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum([len(edges) for edges in state_graph.dec_graph.adj_list.values()]))
             max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum([len(edges) for edges in state_graph.dvc_graph.adj_list.values()]))
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
             num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
+
+            # Prune if represenative already exists
             if self._enable_pruning and state_graph.nauty_certificate in equivalence_classes:
                 continue
             equivalence_classes[state_graph.nauty_certificate].add(state_graph)
