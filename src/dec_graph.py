@@ -28,24 +28,24 @@ class DECVertex:
 
     
 class DECEdge:
-    def __init__(self, source: DECVertex, target: DECVertex, color: Color):
-        self._source = source
-        self._target = target
+    def __init__(self, source_id: int, target_id: int, color: Color):
+        self._source_id = source_id
+        self._target_id = target_id
         self._color = color
 
     def __eq__(self, other : "DECEdge"):
-        return (self._source == other._source and self._target == other._target and self._color == other._color)
+        return (self._source_id == other._source_id and self._target_id == other._target_id and self._color == other._color)
 
     def __hash__(self):
-        return hash((self._source, self._target, self._color))
+        return hash((self._source_id, self._target_id, self._color))
     
     @property 
-    def source(self):
-        return self._source
+    def source_id(self):
+        return self._source_id
     
     @property 
-    def target(self):
-        return self._target
+    def target_id(self):
+        return self._target_id
     
     @property
     def color(self):
@@ -55,25 +55,28 @@ class DECEdge:
 class DECGraph:
     def __init__(self, state : State):
         self._state = state
-        self._vertices: MutableSet[DECVertex] = set()
-        self._adj_list: Dict[DECVertex, MutableSet[DECEdge]] = dict()
+        self._vertices: Dict[int, DECVertex] = dict()
+        self._adj_list: Dict[int, MutableSet[DECEdge]] = dict()
 
     def add_vertex(self, vertex : DECVertex):
         """ Add a vertex *uniquely* to the graph.
         """
         if vertex in self._vertices:
             raise Exception("Vertex with same id already exists.")
-        self._vertices.add(vertex)
-        self._adj_list[vertex] = set()
+        self._vertices[vertex.id] = vertex
+        self._adj_list[vertex.id] = set()
 
     def add_edge(self, edge : DECEdge):
         """ Add an edge *uniquely* to the graph.
         """
-        if edge.source not in self._adj_list:
+        if edge.source_id not in self._adj_list:
             raise Exception("Source node of edge does not exist.")
-        if edge in self._adj_list[edge.source]:
+        if edge in self._adj_list[edge.source_id]:
             raise Exception("Edge with same source, target and color already exists.")
-        self._adj_list[edge.source].add(edge)
+        self._adj_list[edge.source_id].add(edge)
+
+    def get_vertex(self, id: int):
+        return self._vertices[id]
 
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.

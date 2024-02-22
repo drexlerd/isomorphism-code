@@ -83,21 +83,15 @@ class StateGraph:
             if dynamic_atom.predicate.arity > 2:
                 raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if dynamic_atom.predicate.arity == 1:
-                v = DECVertex(
-                    id=vertex_mapper.str_to_int(dynamic_atom.terms[0].name),
-                    color=Color(color_mapper.str_to_int(dynamic_atom.terms[0].type.name), dynamic_atom.terms[0].name))
-                self._dec_graph.add_edge(DECEdge(v, v, Color(color_mapper.str_to_int(dynamic_atom.predicate.name), dynamic_atom.predicate.name)))
+                v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
+                self._dec_graph.add_edge(DECEdge(v_id, v_id, Color(color_mapper.str_to_int(dynamic_atom.predicate.name), dynamic_atom.predicate.name)))
             if dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
                     continue
-                v = DECVertex(
-                    id=vertex_mapper.str_to_int(dynamic_atom.terms[0].name),
-                    color=Color(color_mapper.str_to_int(dynamic_atom.terms[0].type.name), dynamic_atom.terms[0].name))
-                v_prime = DECVertex(
-                    id=vertex_mapper.str_to_int(dynamic_atom.terms[1].name),
-                    color=Color(color_mapper.str_to_int(dynamic_atom.terms[1].type.name), dynamic_atom.terms[1].name))
-                self._dec_graph.add_edge(DECEdge(v, v_prime, Color(color_mapper.str_to_int(dynamic_atom.predicate.name), dynamic_atom.predicate.name)))
+                v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
+                v_prime_id = vertex_mapper.str_to_int(dynamic_atom.terms[1].name)
+                self._dec_graph.add_edge(DECEdge(v_id, v_prime_id, Color(color_mapper.str_to_int(dynamic_atom.predicate.name), dynamic_atom.predicate.name)))
 
         # Add goal atom edges
         for goal_literal in problem.goal:
@@ -117,34 +111,28 @@ class StateGraph:
                 if predicate_name == "=":
                     # Skip equality
                     continue
-                v = DECVertex(
-                    id=vertex_mapper.str_to_int(goal_atom.terms[0].name),
-                    color=Color(color_mapper.str_to_int(goal_atom.terms[0].type.name), goal_atom.terms[0].name))
-                v_prime = DECVertex(
-                    id=vertex_mapper.str_to_int(goal_atom.terms[1].name),
-                    color=Color(color_mapper.str_to_int(goal_atom.terms[1].type.name), goal_atom.terms[1].name))
-                self._dec_graph.add_edge(DECEdge(v, v_prime, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
+                v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
+                v_prime_id = vertex_mapper.str_to_int(goal_atom.terms[1].name)
+                self._dec_graph.add_edge(DECEdge(v_id, v_prime_id, Color(color_mapper.str_to_int(predicate_name), predicate_name)))
 
         # Add constant edges
         for const in problem.domain.constants:
             const_name = const.name
-            v = DECVertex(
-                id=vertex_mapper.str_to_int(const_name),
-                color=Color(color_mapper.str_to_int(const.type.name), const_name))
-            self._dec_graph.add_edge(DECEdge(v, v, Color(color_mapper.str_to_int(const_name), const_name)))
+            v_id = vertex_mapper.str_to_int(const_name)
+            self._dec_graph.add_edge(DECEdge(v_id, v_id, Color(color_mapper.str_to_int(const_name), const_name)))
 
 
         ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
             
         ### More compact encoding with loops integrated into vertex colors
         self._dvc_graph = DVCGraph(state)
-        for vertex in self._dec_graph.vertices:
+        for vertex in self._dec_graph.vertices.values():
             self._dvc_graph.add_vertex(DVCVertex(vertex.id, vertex.color))
         for _, edges in self._dec_graph.adj_list.items():
             for edge in edges:
-                v = DVCVertex(edge.source.id, edge.source.color)
+                v = DVCVertex(edge.source_id, self._dec_graph.vertices[edge.source_id].color)
                 v_middle = DVCVertex(len(self.dvc_graph.vertices), edge.color)
-                v_prime = DVCVertex(edge.target.id, edge.target.color)
+                v_prime = DVCVertex(edge.target_id, self._dec_graph.vertices[edge.target_id].color)
                 self.dvc_graph.add_vertex(v_middle)
                 self.dvc_graph.add_edge(DVCEdge(v, v_middle))
                 self.dvc_graph.add_edge(DVCEdge(v_middle, v_prime))
