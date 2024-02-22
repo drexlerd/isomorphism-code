@@ -50,6 +50,8 @@ class DVCEdge:
     
 
 class DVCGraph:
+    """ A directed vertex colored graph
+    """
     def __init__(self, state : State):
         self._state = state
         self._vertices: Dict[int, DVCVertex] = dict()

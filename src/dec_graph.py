@@ -53,6 +53,8 @@ class DECEdge:
 
 
 class DECGraph:
+    """ A directed edge colored graph.
+    """
     def __init__(self, state : State):
         self._state = state
         self._vertices: Dict[int, DECVertex] = dict()

@@ -1,10 +1,13 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
 import argparse
+import sys
 
 from pathlib import Path 
 
 from src.exact import Driver
+
+print(sys.executable)
 
 
 def add_pddl_options(arg_parser: argparse.ArgumentParser):

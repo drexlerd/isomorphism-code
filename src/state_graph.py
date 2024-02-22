@@ -24,9 +24,11 @@ class NameToIndexMapper:
         self._int_to_str[number] = string
 
     def str_to_int(self, string : str):
+        assert string in self._str_to_int
         return self._str_to_int[string]
 
     def int_to_str(self, number : int):
+        assert number in self._int_to_str
         return self._int_to_str[number]
     
     def strs_to_int(self, strings: MutableSet[str]):
@@ -126,14 +128,30 @@ class StateGraph:
         self._dvc_graph = DVCGraph(state)
         for vertex in self._dec_graph.vertices.values():
             self._dvc_graph.add_vertex(DVCVertex(vertex.id, vertex.color))
-        for _, edges in self._dec_graph.adj_list.items():
+        for source_id, edges in self._dec_graph.adj_list.items():
+            v = self.dvc_graph.vertices[source_id]
             for edge in edges:
-                v = DVCVertex(edge.source_id, self._dec_graph.vertices[edge.source_id].color)
+                assert(edge.source_id == source_id)
+                v_prime = self.dvc_graph.vertices[edge.target_id]
                 v_middle = DVCVertex(len(self.dvc_graph.vertices), edge.color)
-                v_prime = DVCVertex(edge.target_id, self._dec_graph.vertices[edge.target_id].color)
                 self.dvc_graph.add_vertex(v_middle)
                 self.dvc_graph.add_edge(DVCEdge(v.id, v_middle.id))
                 self.dvc_graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
+        #for source_id, edges in self._dec_graph.adj_list.items():
+        #    v = self.dvc_graph.vertices[source_id]
+        #    # Combine vertex label and loop labels into a new vertex color
+        #    loops = [edge for edge in edges if edge.source_id == edge.target_id]
+        #    labels = [v.color.concrete] + [loop.color.concrete for loop in loops]
+        #    v.color = Color(color_mapper.strs_to_int(set(labels)), ",".join(labels))
+        #    # For each transition, encode the label in a helper vertex
+        #    transitions = [edge for edge in edges if edge.source_id != edge.target_id]
+        #    for transition in transitions:
+        #        assert(transition.source_id == source_id)
+        #        v_prime = self.dvc_graph.vertices[transition.target_id]
+        #        v_middle = DVCVertex(len(self.dvc_graph.vertices), transition.color)
+        #        self.dvc_graph.add_vertex(v_middle)
+        #        self.dvc_graph.add_edge(DVCEdge(v.id, v_middle.id))
+        #        self.dvc_graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
 
 
         ### Step 3: Translate to pynauty graph
