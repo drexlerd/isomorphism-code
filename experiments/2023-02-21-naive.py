@@ -102,12 +102,12 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
         # could also use absolute paths in add_command().
         run.add_resource("domain", task.domain_file, symlink=True)
         run.add_resource("problem", task.problem_file, symlink=True)
-        # run.add_resource("main_script", REPO / "main.py", symlink=True)
+        run.add_resource("main_script", REPO / "main.py", symlink=True)
         # 'ff' binary has to be on the PATH.
         # We could also use exp.add_resource().
         run.add_command(
             "main_script_exact",
-            ["python3", REPO / "main.py", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
+            ["python3", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
             time_limit=TIME_LIMIT,
             memory_limit=MEMORY_LIMIT,
         )
