@@ -18,6 +18,7 @@ class IsomorphismParser(Parser):
     def __init__(self):
         super().__init__()
         self.add_pattern("num_states", r"Number of states: (.+)", type=int)
+        self.add_pattern("num_generated_states", r"Number of generated states: (.+)", type=int)
         self.add_pattern("num_transitions", r"Number of transitions: (.+)", type=int)
         self.add_pattern("num_deadends", r"Number of deadend states: (.+)", type=int)
         self.add_pattern("num_goals", r"Number of goal states: (.+)", type=int)

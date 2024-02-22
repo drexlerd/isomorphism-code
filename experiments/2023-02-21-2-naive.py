@@ -36,7 +36,7 @@ if REMOTE:
         setup=TetralithEnvironment.DEFAULT_SETUP,
         extra_options="#SBATCH --account=naiss2023-5-314")
     SUITE = [
-        "barman", 
+        "barman",
         "blocks_3",
         "blocks_4",
         "blocks_4_clear",
@@ -55,7 +55,7 @@ if REMOTE:
 else:
     ENV = LocalEnvironment(processes=4)
     SUITE = [
-        "barman:p-2-2-2-0.pddl", 
+        "barman:p-2-2-2-0.pddl",
         "blocks_3:p-1-0.pddl",
         "blocks_4:p-1-0.pddl",
         "blocks_4_clear:p-1-0.pddl",
@@ -73,6 +73,7 @@ else:
     TIME_LIMIT = 10
 ATTRIBUTES = [
     Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_generated_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_transitions", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_deadends", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_goals", absolute=True, min_wins=True, scale="linear"),
@@ -96,34 +97,33 @@ exp.add_parser(IsomorphismParser())
 #exp.add_resource("main_script", REPO / "main.py", symlink=True)
 
 for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
-    for complexity in [10]:
-        run = exp.add_run()
-        # Create symbolic links and aliases. This is optional. We
-        # could also use absolute paths in add_command().
-        run.add_resource("domain", task.domain_file, symlink=True)
-        run.add_resource("problem", task.problem_file, symlink=True)
-        run.add_resource("main_script", REPO / "main.py", symlink=True)
-        # 'ff' binary has to be on the PATH.
-        # We could also use exp.add_resource().
-        run.add_command(
-            "main_script_exact",
-            ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
-            time_limit=TIME_LIMIT,
-            memory_limit=MEMORY_LIMIT,
-        )
-        # AbsoluteReport needs the following properties:
-        # 'domain', 'problem', 'algorithm', 'coverage'.
-        run.set_property("domain", task.domain)
-        run.set_property("problem", task.problem)
-        run.set_property("algorithm", "exact")
-        # BaseReport needs the following properties:
-        # 'time_limit', 'memory_limit'.
-        run.set_property("time_limit", TIME_LIMIT)
-        run.set_property("memory_limit", MEMORY_LIMIT)
-        # Every run has to have a unique id in the form of a list.
-        # The algorithm name is only really needed when there are
-        # multiple algorithms.
-        run.set_property("id", ["exact", task.domain, task.problem])
+    run = exp.add_run()
+    # Create symbolic links and aliases. This is optional. We
+    # could also use absolute paths in add_command().
+    run.add_resource("domain", task.domain_file, symlink=True)
+    run.add_resource("problem", task.problem_file, symlink=True)
+    run.add_resource("main_script", REPO / "main.py", symlink=True)
+    # 'ff' binary has to be on the PATH.
+    # We could also use exp.add_resource().
+    run.add_command(
+        "main_script_exact",
+        ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--enable-pruning"],
+        time_limit=TIME_LIMIT,
+        memory_limit=MEMORY_LIMIT,
+    )
+    # AbsoluteReport needs the following properties:
+    # 'domain', 'problem', 'algorithm', 'coverage'.
+    run.set_property("domain", task.domain)
+    run.set_property("problem", task.problem)
+    run.set_property("algorithm", "exact")
+    # BaseReport needs the following properties:
+    # 'time_limit', 'memory_limit'.
+    run.set_property("time_limit", TIME_LIMIT)
+    run.set_property("memory_limit", MEMORY_LIMIT)
+    # Every run has to have a unique id in the form of a list.
+    # The algorithm name is only really needed when there are
+    # multiple algorithms.
+    run.set_property("id", ["exact", task.domain, task.problem])
 
 # Add step that writes experiment files to disk.
 exp.add_step("build", exp.build)

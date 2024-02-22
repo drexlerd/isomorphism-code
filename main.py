@@ -3,7 +3,7 @@
 import argparse
 import sys
 
-from pathlib import Path 
+from pathlib import Path
 
 from src.exact import Driver
 
@@ -36,6 +36,7 @@ if __name__ == "__main__":
     add_pddl_options(exact_parser)
     add_verbosity_option(exact_parser)
     add_dump_dot_option(exact_parser)
+    exact_parser.add_argument("--enable-pruning", action="store_true", help="If specified, only a single representative for each equivalence is kept in a breadth-first-search.")
 
     # Sub parser 2: wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
@@ -52,7 +53,8 @@ if __name__ == "__main__":
             Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
             args.verbosity,
-            args.dump_dot) 
+            args.dump_dot,
+            args.enable_pruning)
         driver.run()
     elif args.type == "wl":
         pass
