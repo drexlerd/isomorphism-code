@@ -47,17 +47,6 @@ class Driver:
         problem = problem_parser.parse(domain)
         successor_generator = LiftedSuccessorGenerator(problem)
 
-
-        self._logger.info("Started generating StateSpace")
-        state_space = StateSpace.new(problem, successor_generator, max_expanded=2147483647)
-        self._logger.info("Finished generating StateSpace")
-        print("Number of states:", len(state_space.get_states()))
-        print("Number of transitions:", state_space.num_transitions())
-        print("Number of deadend states:", state_space.num_dead_end_states())
-        print("Number of goal states:", state_space.num_goal_states())
-        print()
-
-
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
         initial_state = problem.create_state(problem.initial)
@@ -103,6 +92,17 @@ class Driver:
         print("Number of vertices in DVC graph:", num_vertices_dvc_graph)
         print("Maximum number of edges in DEC graph:", max_num_edges_dec_graph)
         print("Maximum number of edges in DVC graph:", max_num_edges_dvc_graph)
+        print()
+
+
+        self._logger.info("Started generating StateSpace")
+        state_space = StateSpace.new(problem, successor_generator, max_expanded=2147483647)
+        self._logger.info("Finished generating StateSpace")
+        print("Number of states:", len(state_space.get_states()))
+        print("Number of transitions:", state_space.num_transitions())
+        print("Number of deadend states:", state_space.num_dead_end_states())
+        print("Number of goal states:", state_space.num_goal_states())
+        print()
 
         if self._dump_dot:
             print("Dumping dot files to \"outputs/\"")

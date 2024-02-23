@@ -60,7 +60,7 @@ class StateGraph:
         self._dvc_graph = self._create_directed_vertex_colored_graph(self._dec_graph)
 
         ### Step 3: Translate to pynauty graph
-        self._nauty_graph = self._create_pynauty_graph(self._dvc_graph)
+        self._nauty_graph = self._create_pynauty_directed_vertex_colored_graph(self._dvc_graph)
 
         ### Step 4: Compute the graph certificate
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
@@ -102,18 +102,13 @@ class StateGraph:
 
         # Add vertices
         for obj in problem.objects:
-            # Create color based on the type
-            # Note: we currently assume that each object has a single parent type
-            # To support "either" types, we must compute an aggregate
             v = DECVertex(
                 id=vertex_mapper.str_to_int("o_" + obj.name),
                 color=Color(
                     value=color_mapper.str_to_int(None),
                     info=obj.name))
             graph.add_vertex(v)
-        for typ in problem.domain.types:
-            if typ.name == "object":
-                continue  # skip becuase every PDDL object is of type object
+        for typ in set([obj.type for obj in problem.objects if obj.type != "object"]):
             v = DECVertex(
                 id=vertex_mapper.str_to_int("t_" + typ.name),
                 color=Color(
@@ -127,23 +122,20 @@ class StateGraph:
                     value=color_mapper.str_to_int("c_" + const.name),
                     info=const.name))
             graph.add_vertex(v)
-        for pred in problem.domain.predicates:
-            if pred.arity <= 1:
-                v = DECVertex(
-                    id=vertex_mapper.str_to_int("p_" + pred.name),
-                    color=Color(
-                        value=color_mapper.str_to_int("p_" + pred.name),
-                        info=pred.name))
-                graph.add_vertex(v)
-        goal_predicates = set([goal_literal.atom.predicate for goal_literal in problem.goal])
-        for pred in goal_predicates:
-            if pred.arity <= 1:
-                v = DECVertex(
-                    id=vertex_mapper.str_to_int("p_" + pred.name + "_g"),
-                    color=Color(
-                        value=color_mapper.str_to_int("p_" + pred.name + "_g"),
-                        info=pred.name))
-                graph.add_vertex(v)
+        for pred in set([atom.predicate for atom in state.get_atoms() if atom.predicate.arity <=1]):
+            v = DECVertex(
+                id=vertex_mapper.str_to_int("p_" + pred.name),
+                color=Color(
+                    value=color_mapper.str_to_int("p_" + pred.name),
+                    info=pred.name))
+            graph.add_vertex(v)
+        for pred in set([goal_literal.atom.predicate for goal_literal in problem.goal if goal_literal.atom.predicate.arity <= 1]):
+            v = DECVertex(
+                id=vertex_mapper.str_to_int("p_" + pred.name + "_g"),
+                color=Color(
+                    value=color_mapper.str_to_int("p_" + pred.name + "_g"),
+                    info=pred.name))
+            graph.add_vertex(v)
 
         # Add atom edges
         for dynamic_atom in state.get_atoms():
@@ -163,7 +155,7 @@ class StateGraph:
                         Color(
                             value=color_mapper.str_to_int("p_" + dynamic_atom.predicate.name),
                             info=dynamic_atom.predicate.name)))
-            else:
+            elif dynamic_atom.predicate.arity > 2:
                 raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
 
         # Add goal atom edges
@@ -189,7 +181,7 @@ class StateGraph:
                         Color(
                             value=color_mapper.str_to_int("p_" + predicate_name),
                             info=predicate_name)))
-            else:
+            elif predicate_arity > 2:
                 raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
 
         # Add type edges
@@ -238,7 +230,7 @@ class StateGraph:
                     graph.add_edge(DVCEdge(v.id, v_prime.id))
         return graph
 
-    def _create_pynauty_graph(self, dvc_graph: DVCGraph):
+    def _create_pynauty_directed_vertex_colored_graph(self, dvc_graph: DVCGraph):
         # remap vertex indices
         old_to_new_vertex_index = dict()
         for vertex in dvc_graph.vertices.values():
