@@ -8,12 +8,12 @@ from pymimir import DomainParser, ProblemParser, StateSpace, LiftedSuccessorGene
 from tqdm import tqdm
 
 from .state_graph import StateGraph
-from .state_space import StateSpace as XStateSpace
+from .equivalence_graph import EquivalenceGraph
 from .logger import initialize_logger, add_console_handler
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot

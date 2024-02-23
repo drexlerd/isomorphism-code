@@ -21,7 +21,7 @@ def add_verbosity_option(arg_parser: argparse.ArgumentParser):
     arg_parser.add_argument("--verbosity", type=str, choices=log_levels, default="INFO", help=level_help("src", log_levels))
 
 def add_dump_dot_option(arg_parser: argparse.ArgumentParser):
-    arg_parser.add_argument("--dump-dot", action="store_true", help="If specified, files will be written to disk.")
+    arg_parser.add_argument("--dump-dot", action="store_true", help="If specified, the graph dot representations will be written to files.")
 
 
 
@@ -37,6 +37,7 @@ if __name__ == "__main__":
     add_verbosity_option(exact_parser)
     add_dump_dot_option(exact_parser)
     exact_parser.add_argument("--enable-pruning", action="store_true", help="If specified, only a single representative for each equivalence is kept in a breadth-first-search.")
+    exact_parser.add_argument("--dump-equivalence-graph", action="store_true", help="If specified, the equivalence graph json representation will be written to a file.")
 
     # Sub parser 2: wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
@@ -54,7 +55,8 @@ if __name__ == "__main__":
             Path(args.problem_file_path).absolute(),
             args.verbosity,
             args.dump_dot,
-            args.enable_pruning)
+            args.enable_pruning,
+            args.dump_equivalence_graph)
         driver.run()
     elif args.type == "wl":
         pass
