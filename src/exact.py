@@ -13,11 +13,13 @@ from .logger import initialize_logger, add_console_handler
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool, enable_undirected: bool):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
         self._enable_pruning = enable_pruning
+        self._dump_equivalence_graph = dump_equivalence_graph
+        self._enable_undirected = enable_undirected
         self._logger = initialize_logger("exact")
         self._logger.setLevel(verbosity)
         add_console_handler(self._logger)
@@ -25,6 +27,7 @@ class Driver:
         if self._dump_dot:
             Path("outputs/decs").mkdir(parents=True, exist_ok=True)
             Path("outputs/dvcs").mkdir(parents=True, exist_ok=True)
+            Path("outputs/uvcs").mkdir(parents=True, exist_ok=True)
 
 
     def run(self):
@@ -59,7 +62,7 @@ class Driver:
         while queue:
             cur_state = queue.popleft()
 
-            state_graph = StateGraph(cur_state)
+            state_graph = StateGraph(cur_state, self._enable_undirected)
             max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum([len(edges) for edges in state_graph.dec_graph.adj_list.values()]))
             max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum([len(edges) for edges in state_graph.dvc_graph.adj_list.values()]))
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
@@ -111,3 +114,4 @@ class Driver:
                 for i, state_graph in enumerate(state_graphs):
                     state_graph.dec_graph.to_dot(f"outputs/decs/{class_id}/{i}.gc")
                     state_graph.dvc_graph.to_dot(f"outputs/dvcs/{class_id}/{i}.gc")
+                    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")

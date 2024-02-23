@@ -1,4 +1,4 @@
-from graphviz import Digraph
+from graphviz import Digraph as DotDigraph
 
 from typing import MutableSet, Dict, Union
 
@@ -80,7 +80,7 @@ class DECGraph:
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.
         """
-        dot = Digraph(comment='DirectedEdgeColoredGraph')
+        dot = DotDigraph(comment='DirectedEdgeColoredGraph')
         for vertex in self._vertices.values():
             dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color)}")
         for _, edges in self._adj_list.items():

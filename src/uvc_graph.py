@@ -1,6 +1,6 @@
 import sys
 
-from graphviz import Digraph as DotDigraph
+from graphviz import Graph as DotGraph
 
 from typing import MutableSet, Dict
 
@@ -9,12 +9,12 @@ from pymimir import State
 from .color import Color
 
 
-class DVCVertex:
+class UVCVertex:
     def __init__(self, id: int, color : Color):
         self._id = id
         self._color = color
 
-    def __eq__(self, other : "DVCVertex"):
+    def __eq__(self, other : "UVCVertex"):
         return self._id == other._id
 
     def __hash__(self):
@@ -29,12 +29,12 @@ class DVCVertex:
         return self._color
 
 
-class DVCEdge:
+class UVCEdge:
     def __init__(self, source_id: int, target_id: int):
         self._source_id = source_id
         self._target_id = target_id
 
-    def __eq__(self, other : "DVCEdge"):
+    def __eq__(self, other : "UVCEdge"):
         return (self._source_id == other._source_id and self._target_id == other._target_id)
 
     def __hash__(self):
@@ -49,15 +49,15 @@ class DVCEdge:
         return self._target_id
 
 
-class DVCGraph:
+class UVCGraph:
     """ A directed vertex colored graph
     """
     def __init__(self, state : State):
         self._state = state
-        self._vertices: Dict[int, DVCVertex] = dict()
-        self._adj_list: Dict[int, MutableSet[DVCEdge]] = dict()
+        self._vertices: Dict[int, UVCVertex] = dict()
+        self._adj_list: Dict[int, MutableSet[UVCEdge]] = dict()
 
-    def add_vertex(self, vertex : DVCVertex):
+    def add_vertex(self, vertex : UVCVertex):
         """ Add a vertex *uniquely* to the graph.
         """
         if vertex.id in self._vertices:
@@ -65,7 +65,7 @@ class DVCGraph:
         self._vertices[vertex.id] = vertex
         self._adj_list[vertex.id] = set()
 
-    def add_edge(self, edge : DVCEdge):
+    def add_edge(self, edge : UVCEdge):
         """ Add an edge *uniquely* to the graph.
         """
         if edge.source_id not in self._adj_list:
@@ -74,15 +74,21 @@ class DVCGraph:
             raise Exception("Edge with same source, target and color already exists.")
         self._adj_list[edge.source_id].add(edge)
 
+    def test_is_undirected(self):
+        """ Returns true iff the graph is undirected.
+        """
+        return all(all(UVCEdge(edge.target_id, edge.source_id) in self._adj_list[edge.target_id] for edge in edges) for edges in self._adj_list.values())
+
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.
         """
-        dot = DotDigraph(comment='DirectedVertexColoredGraph')
+        dot = DotGraph(comment='UndirectedVertexColoredGraph')
         for vertex in self._vertices.values():
             dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color)}")
         for _, edges in self._adj_list.items():
             for edge in edges:
-                dot.edge(str(edge.source_id), str(edge.target_id))
+                if edge.source_id < edge.target_id:  # only print 1 edge
+                    dot.edge(str(edge.source_id), str(edge.target_id))
         dot.render(output_file_path, view=False, quiet=True)
 
     @property

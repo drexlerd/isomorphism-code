@@ -7,6 +7,7 @@ from collections import defaultdict
 from .color import Color
 from .dec_graph import DECVertex, DECEdge, DECGraph
 from .dvc_graph import DVCVertex, DVCEdge, DVCGraph
+from .uvc_graph import UVCVertex, UVCEdge, UVCGraph
 
 
 class NameToIndexMapper:
@@ -48,7 +49,7 @@ class StateGraph:
     In this version, we give all vertices the same color
     and encode type information using loop edges
     """
-    def __init__(self, state : State):
+    def __init__(self, state : State, enable_undirected: bool):
         self._state = state
         # Bookkeeping: create mappings from names to integers
         vertex_mapper, color_mapper = self._create_name_to_index_mapping(state)
@@ -59,11 +60,20 @@ class StateGraph:
         ### Step 2: Create Directed Vertex Colored Graph (DVCGraph)
         self._dvc_graph = self._create_directed_vertex_colored_graph(self._dec_graph)
 
-        ### Step 3: Translate to pynauty graph
-        self._nauty_graph = self._create_pynauty_directed_vertex_colored_graph(self._dvc_graph)
+        ### Step 4: Create Undirected Vertex Colored Graph (UVCGraph)
+        self._uvc_graph = self._create_undirected_vertex_colored_graph(self._dvc_graph, color_mapper)
+        assert self._uvc_graph.test_is_undirected()
+
+        if enable_undirected:
+            ### Step 3 B: Translate to pynauty graph
+            self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
+        else:
+            ### Step 3 A: Translate to pynauty graph
+            self._nauty_graph = self._create_pynauty_directed_vertex_colored_graph(self._dvc_graph)
 
         ### Step 4: Compute the graph certificate
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
+
 
     def _create_name_to_index_mapping(self, state: State):
         """ Maps PDDL names to indices.
@@ -143,7 +153,7 @@ class StateGraph:
                 v_id = vertex_mapper.str_to_int("p_" + dynamic_atom.predicate.name)
                 v_prime_id = vertex_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                #graph.add_edge(DECEdge(v_prime_id, v_id, None))
+                graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
@@ -169,7 +179,7 @@ class StateGraph:
                 v_id = vertex_mapper.str_to_int("p_" + predicate_name)
                 v_prime_id = vertex_mapper.str_to_int("o_" + goal_atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                # graph.add_edge(DECEdge(v_prime_id, v, None))
+                graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif predicate_arity == 2:
                 if predicate_name == "=":
                     # Skip equality
@@ -191,17 +201,14 @@ class StateGraph:
             v_id = vertex_mapper.str_to_int("t_" + obj.type.name)
             v_prime_id = vertex_mapper.str_to_int("o_" + obj.name)
             graph.add_edge(DECEdge(v_id, v_prime_id, None))
-            # graph.add_edge(DECEdge(v_prime_id, v, None))
+            graph.add_edge(DECEdge(v_prime_id, v_id, None))
 
         # Add constant edges
         for const in problem.domain.constants:
-            const_name = const.name
-            v_id = vertex_mapper.str_to_int("c_" + const_name)
-            v_prime_id = vertex_mapper.str_to_int("c_" + const_name)
-            graph.add_edge(
-                DECEdge(v_id, v_id,
-                    Color(
-                        value=color_mapper.str_to_int("c_" + const_name))))
+            v_id = vertex_mapper.str_to_int("t_" + const.type.name)
+            v_prime_id = vertex_mapper.str_to_int("c_" + const.name)
+            graph.add_edge(DECEdge(v_id, v_prime_id, None))
+            graph.add_edge(DECEdge(v_prime_id, v_id, None))
 
         return graph
 
@@ -228,6 +235,82 @@ class StateGraph:
                     v = dec_graph.vertices[source_id]
                     v_prime = dec_graph.vertices[edge.target_id]
                     graph.add_edge(DVCEdge(v.id, v_prime.id))
+        return graph
+
+    def _create_undirected_vertex_colored_graph(self, dvc_graph: DVCGraph, color_mapper: NameToIndexMapper):
+        graph = UVCGraph(dvc_graph.state)
+        next_free_vertex_id = max([vertex.id for vertex in dvc_graph.vertices.values()]) + 1
+        for vertex in dvc_graph.vertices.values():
+            graph.add_vertex(DVCVertex(
+                id=vertex.id,
+                color=vertex.color))
+        for source_id, edges in dvc_graph.adj_list.items():
+            for edge in edges:
+                if DVCEdge(edge.target_id, edge.source_id) in dvc_graph.adj_list[edge.target_id]:
+                    # There exists an anti-parallel edge
+                    v = dvc_graph.vertices[source_id]
+                    v_prime = dvc_graph.vertices[edge.target_id]
+                    graph.add_edge(DVCEdge(v.id, v_prime.id))
+                else:
+                    # Edge is directed
+                    v = dvc_graph.vertices[source_id]
+                    v_prime = dvc_graph.vertices[edge.target_id]
+                    v_tail_main = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    next_free_vertex_id += 1
+                    v_tail_1 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    next_free_vertex_id += 1
+                    v_head_main = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    next_free_vertex_id += 1
+                    v_head_1 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    next_free_vertex_id += 1
+                    v_head_2 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    next_free_vertex_id += 1
+
+                    graph.add_vertex(v_tail_main)
+                    graph.add_vertex(v_tail_1)
+                    graph.add_vertex(v_head_main)
+                    graph.add_vertex(v_head_1)
+                    graph.add_vertex(v_head_2)
+
+                    graph.add_edge(UVCEdge(v.id, v_tail_main.id))
+                    graph.add_edge(UVCEdge(v_tail_main.id, v.id))
+
+                    graph.add_edge(UVCEdge(v_tail_main.id, v_tail_1.id))
+                    graph.add_edge(UVCEdge(v_tail_1.id, v_tail_main.id))
+
+                    graph.add_edge(UVCEdge(v_tail_main.id, v_head_main.id))
+                    graph.add_edge(UVCEdge(v_head_main.id, v_tail_main.id))
+
+                    graph.add_edge(UVCEdge(v_head_main.id, v_head_1.id))
+                    graph.add_edge(UVCEdge(v_head_1.id, v_head_main.id))
+
+                    graph.add_edge(UVCEdge(v_head_1.id, v_head_2.id))
+                    graph.add_edge(UVCEdge(v_head_2.id, v_head_1.id))
+
+                    graph.add_edge(UVCEdge(v_head_main.id, v_prime.id))
+                    graph.add_edge(UVCEdge(v_prime.id, v_head_main.id))
+        return graph
+
+    def _create_pynauty_undirected_vertex_colored_graph(self, dvc_graph: UVCGraph):
+        # remap vertex indices
+        old_to_new_vertex_index = dict()
+        for vertex in dvc_graph.vertices.values():
+            old_to_new_vertex_index[vertex.id] = len(old_to_new_vertex_index)
+        adjacency_dict = defaultdict(set)
+        for source_id, edges in dvc_graph.adj_list.items():
+            adjacency_dict[old_to_new_vertex_index[source_id]] = set([old_to_new_vertex_index[edge.target_id] for edge in edges])
+        # compute vertex partitioning
+        color_to_vertices = defaultdict(set)
+        for vertex in dvc_graph.vertices.values():
+            color_to_vertices[vertex.color.value].add(old_to_new_vertex_index[vertex.id])
+        color_to_vertices = dict(sorted(color_to_vertices.items()))
+        vertex_partitioning = list(color_to_vertices.values())
+
+        graph = NautyGraph(
+            number_of_vertices=len(old_to_new_vertex_index),
+            directed=False,
+            adjacency_dict=adjacency_dict,
+            vertex_coloring=vertex_partitioning)
         return graph
 
     def _create_pynauty_directed_vertex_colored_graph(self, dvc_graph: DVCGraph):
@@ -266,6 +349,10 @@ class StateGraph:
     @property
     def dvc_graph(self):
         return self._dvc_graph
+
+    @property
+    def uvc_graph(self):
+        return self._uvc_graph
 
     @property
     def nauty_certificate(self):
