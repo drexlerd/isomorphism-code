@@ -135,7 +135,15 @@ class StateGraph:
                         value=color_mapper.str_to_int("p_" + pred.name),
                         info=pred.name))
                 graph.add_vertex(v)
-
+        goal_predicates = set([goal_literal.atom.predicate for goal_literal in problem.goal])
+        for pred in goal_predicates:
+            if pred.arity <= 1:
+                v = DECVertex(
+                    id=vertex_mapper.str_to_int("p_" + pred.name + "_g"),
+                    color=Color(
+                        value=color_mapper.str_to_int("p_" + pred.name + "_g"),
+                        info=pred.name))
+                graph.add_vertex(v)
 
         # Add atom edges
         for dynamic_atom in state.get_atoms():
@@ -143,7 +151,7 @@ class StateGraph:
                 v_id = vertex_mapper.str_to_int("p_" + dynamic_atom.predicate.name)
                 v_prime_id = vertex_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                graph.add_edge(DECEdge(v_prime_id, v_id, None))
+                #graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
@@ -166,10 +174,10 @@ class StateGraph:
             predicate_arity = goal_atom.predicate.arity
             predicate_name = goal_atom.predicate.name + "_g"
             if predicate_arity == 1:
-                v_id = vertex_mapper.str_to_int("p_" + goal_atom.predicate.name)
+                v_id = vertex_mapper.str_to_int("p_" + predicate_name)
                 v_prime_id = vertex_mapper.str_to_int("o_" + goal_atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                graph.add_edge(DECEdge(v_prime_id, v, None))
+                # graph.add_edge(DECEdge(v_prime_id, v, None))
             elif predicate_arity == 2:
                 if predicate_name == "=":
                     # Skip equality
@@ -183,6 +191,15 @@ class StateGraph:
                             info=predicate_name)))
             else:
                 raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
+
+        # Add type edges
+        for obj in problem.objects:
+            if obj.type.name == "object":  # skip becuase every PDDL object is of type object
+                continue
+            v_id = vertex_mapper.str_to_int("t_" + obj.type.name)
+            v_prime_id = vertex_mapper.str_to_int("o_" + obj.name)
+            graph.add_edge(DECEdge(v_id, v_prime_id, None))
+            # graph.add_edge(DECEdge(v_prime_id, v, None))
 
         # Add constant edges
         for const in problem.domain.constants:

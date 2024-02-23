@@ -63,7 +63,7 @@ class DECGraph:
     def add_vertex(self, vertex : DECVertex):
         """ Add a vertex *uniquely* to the graph.
         """
-        if vertex in self._vertices:
+        if vertex.id in self._vertices:
             raise Exception("Vertex with same id already exists.")
         self._vertices[vertex.id] = vertex
         self._adj_list[vertex.id] = set()
