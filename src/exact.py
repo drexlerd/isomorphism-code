@@ -24,12 +24,6 @@ class Driver:
         self._logger.setLevel(verbosity)
         add_console_handler(self._logger)
 
-        if self._dump_dot:
-            Path("outputs/decs").mkdir(parents=True, exist_ok=True)
-            Path("outputs/dvcs").mkdir(parents=True, exist_ok=True)
-            Path("outputs/uvcs").mkdir(parents=True, exist_ok=True)
-
-
     def run(self):
         """ Main loop for computing Aut(S(P)) for state space S(P).
         """
@@ -48,7 +42,7 @@ class Driver:
         domain = domain_parser.parse()
         problem_parser = ProblemParser(str(self._problem_file_path))
         problem = problem_parser.parse(domain)
-        successor_generator = GroundedSuccessorGenerator(problem)
+        successor_generator = LiftedSuccessorGenerator(problem)
 
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
@@ -68,6 +62,11 @@ class Driver:
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
             num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
 
+            if (num_generated_states % 10 == 1):
+                # Overwrite the line in the loop
+                print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.2f} seconds", end="")
+                sys.stdout.flush()
+
             # Prune if represenative already exists
             if self._enable_pruning and state_graph.nauty_certificate in equivalence_classes:
                 continue
@@ -83,12 +82,12 @@ class Driver:
                 num_generated_states += 1
 
                 queue.append(suc_state)
+        print()
 
         end_time = time.time()
         runtime = end_time - start_time
         self._logger.info("Finished generating Aut(G)")
         print(f"Total time: {runtime:.2f} seconds")
-        print(f"Total time per state: {runtime / num_generated_states:.2f} seconds")
         print("Number of generated states:", num_generated_states)
         print("Number of equivalence classes:", len(equivalence_classes))
         print("Number of vertices in DEC graph:", num_vertices_dec_graph)
@@ -97,21 +96,16 @@ class Driver:
         print("Maximum number of edges in DVC graph:", max_num_edges_dvc_graph)
         print()
 
-
-        self._logger.info("Started generating StateSpace")
-        state_space = StateSpace.new(problem, successor_generator, max_expanded=2147483647)
-        self._logger.info("Finished generating StateSpace")
-        print("Number of states:", len(state_space.get_states()))
-        print("Number of transitions:", state_space.num_transitions())
-        print("Number of deadend states:", state_space.num_dead_end_states())
-        print("Number of goal states:", state_space.num_goal_states())
-        print()
-
         if self._dump_dot:
             print("Dumping dot files to \"outputs/\"")
+            Path("outputs/decs").mkdir(parents=True, exist_ok=True)
+            Path("outputs/dvcs").mkdir(parents=True, exist_ok=True)
+            if self._enable_undirected:
+                Path("outputs/uvcs").mkdir(parents=True, exist_ok=True)
             for class_id, state_graphs in enumerate(tqdm(equivalence_classes.values(), file=sys.stdout)):
                 Path(f"outputs/dvcs/{class_id}").mkdir(parents=True, exist_ok=True)
                 for i, state_graph in enumerate(state_graphs):
                     state_graph.dec_graph.to_dot(f"outputs/decs/{class_id}/{i}.gc")
                     state_graph.dvc_graph.to_dot(f"outputs/dvcs/{class_id}/{i}.gc")
-                    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")
+                    if self._enable_undirected:
+                        state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")

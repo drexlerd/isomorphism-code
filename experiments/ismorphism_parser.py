@@ -28,6 +28,6 @@ class IsomorphismParser(Parser):
         self.add_pattern("max_num_edges_dvc_graph", r"Maximum number of edges in DVC graph: (.+)", type=int)
         self.add_pattern("num_equivalence_classes", r"Number of equivalence classes: (.+)", type=int)
         self.add_pattern("time_total", r"Total time: (.+) seconds", type=float)
-        self.add_pattern("time_per_state", r"Total time per state: (.+) seconds", type=float)
+        self.add_pattern("average_time_per_state", r"Average time per state: (.+) seconds", type=float)
         self.add_function(error)
         self.add_function(coverage)

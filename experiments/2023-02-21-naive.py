@@ -84,7 +84,7 @@ ATTRIBUTES = [
     Attribute("max_num_edges_dvc_graph", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_equivalence_classes", absolute=True, min_wins=True, scale="linear"),
     Attribute("time_total", absolute=True, min_wins=True, scale="linear"),
-    Attribute("time_per_state", absolute=True, min_wins=True, scale="linear"),
+    Attribute("average_time_per_state", absolute=True, min_wins=True, scale="linear"),
 
 ]
 
@@ -108,7 +108,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_exact",
-        ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--enable-pruning"],
+        ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--enable-pruning", "--enable-undirected"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )

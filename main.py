@@ -20,9 +20,9 @@ def add_verbosity_option(arg_parser: argparse.ArgumentParser):
     level_help = "Set log level for {0}. Allowed values: {1}".format
     arg_parser.add_argument("--verbosity", type=str, choices=log_levels, default="INFO", help=level_help("src", log_levels))
 
+
 def add_dump_dot_option(arg_parser: argparse.ArgumentParser):
     arg_parser.add_argument("--dump-dot", action="store_true", help="If specified, the graph dot representations will be written to files.")
-
 
 
 if __name__ == "__main__":
