@@ -66,18 +66,32 @@ class StateGraph:
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
 
     def _create_name_to_index_mapping(self, state: State):
+        """ Maps PDDL names to indices.
+
+            Map nullary and unary predicate to vertices and binary predicates to edges.
+        """
         problem = state.get_problem()
         vertex_mapper = NameToIndexMapper()
         for obj in problem.objects:
-            vertex_mapper.add(obj.name)
-        color_mapper = NameToIndexMapper()
+            vertex_mapper.add("o_" + obj.name)
         for typ in problem.domain.types:
-            color_mapper.add(typ.name)
-        for pred in problem.domain.predicates:
-            color_mapper.add(pred.name)
-            color_mapper.add(pred.name + "_g")
+            vertex_mapper.add("t_" + typ.name)
         for const in problem.domain.constants:
-            color_mapper.add(const.name)
+            vertex_mapper.add("c_" + const.name)
+        for pred in problem.domain.predicates:
+            if pred.arity <= 1:
+                vertex_mapper.add("p_" + pred.name)
+                vertex_mapper.add("p_" + pred.name + "_g")
+
+        color_mapper = NameToIndexMapper()
+        color_mapper.add(None)
+        for typ in problem.domain.types:
+            color_mapper.add("t_" + typ.name)
+        for pred in problem.domain.predicates:
+            color_mapper.add("p_" + pred.name)
+            color_mapper.add("p_" + pred.name + "_g")
+        for const in problem.domain.constants:
+            color_mapper.add("c_" + const.name)
         return vertex_mapper, color_mapper
 
     def _create_directed_edge_colored_graph(self, state, vertex_mapper, color_mapper):
@@ -92,35 +106,57 @@ class StateGraph:
             # Note: we currently assume that each object has a single parent type
             # To support "either" types, we must compute an aggregate
             v = DECVertex(
-                id=vertex_mapper.str_to_int(obj.name),
+                id=vertex_mapper.str_to_int("o_" + obj.name),
                 color=Color(
-                    value=color_mapper.str_to_int(obj.type.name),
-                    labels={obj.type.name},
+                    value=color_mapper.str_to_int(None),
                     info=obj.name))
             graph.add_vertex(v)
+        for typ in problem.domain.types:
+            if typ.name == "object":
+                continue  # skip becuase every PDDL object is of type object
+            v = DECVertex(
+                id=vertex_mapper.str_to_int("t_" + typ.name),
+                color=Color(
+                    value=color_mapper.str_to_int("t_" + typ.name),
+                    info=typ.name))
+            graph.add_vertex(v)
+        for const in problem.domain.constants:
+            v = DECVertex(
+                id=vertex_mapper.str_to_int("c_" + const.name),
+                color=Color(
+                    value=color_mapper.str_to_int("c_" + const.name),
+                    info=const.name))
+            graph.add_vertex(v)
+        for pred in problem.domain.predicates:
+            if pred.arity <= 1:
+                v = DECVertex(
+                    id=vertex_mapper.str_to_int("p_" + pred.name),
+                    color=Color(
+                        value=color_mapper.str_to_int("p_" + pred.name),
+                        info=pred.name))
+                graph.add_vertex(v)
+
 
         # Add atom edges
         for dynamic_atom in state.get_atoms():
-            if dynamic_atom.predicate.arity > 2:
-                raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if dynamic_atom.predicate.arity == 1:
-                v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
-                graph.add_edge(
-                    DECEdge(v_id, v_id,
-                        Color(
-                            value=color_mapper.str_to_int(dynamic_atom.predicate.name),
-                            labels={dynamic_atom.predicate.name})))
-            if dynamic_atom.predicate.arity == 2:
+                v_id = vertex_mapper.str_to_int("p_" + dynamic_atom.predicate.name)
+                v_prime_id = vertex_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
+                graph.add_edge(DECEdge(v_id, v_prime_id, None))
+                graph.add_edge(DECEdge(v_prime_id, v_id, None))
+            elif dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
                     continue
-                v_id = vertex_mapper.str_to_int(dynamic_atom.terms[0].name)
-                v_prime_id = vertex_mapper.str_to_int(dynamic_atom.terms[1].name)
+                v_id = vertex_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
+                v_prime_id = vertex_mapper.str_to_int("o_" + dynamic_atom.terms[1].name)
                 graph.add_edge(
                     DECEdge(v_id, v_prime_id,
                         Color(
-                            value=color_mapper.str_to_int(dynamic_atom.predicate.name),
-                            labels={dynamic_atom.predicate.name})))
+                            value=color_mapper.str_to_int("p_" + dynamic_atom.predicate.name),
+                            info=dynamic_atom.predicate.name)))
+            else:
+                raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
 
         # Add goal atom edges
         for goal_literal in problem.goal:
@@ -129,41 +165,41 @@ class StateGraph:
             goal_atom = goal_literal.atom
             predicate_arity = goal_atom.predicate.arity
             predicate_name = goal_atom.predicate.name + "_g"
-            if predicate_arity > 2:
-                raise Exception("Got predicate of arity 2! Implementation does not support this.")
             if predicate_arity == 1:
-                v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
-                graph.add_edge(
-                    DECEdge(v_id, v_id,
-                        Color(
-                            value=color_mapper.str_to_int(predicate_name),
-                            labels={predicate_name})))
-            if predicate_arity == 2:
+                v_id = vertex_mapper.str_to_int("p_" + goal_atom.predicate.name)
+                v_prime_id = vertex_mapper.str_to_int("o_" + goal_atom.terms[0].name)
+                graph.add_edge(DECEdge(v_id, v_prime_id, None))
+                graph.add_edge(DECEdge(v_prime_id, v, None))
+            elif predicate_arity == 2:
                 if predicate_name == "=":
                     # Skip equality
                     continue
-                v_id = vertex_mapper.str_to_int(goal_atom.terms[0].name)
-                v_prime_id = vertex_mapper.str_to_int(goal_atom.terms[1].name)
+                v_id = vertex_mapper.str_to_int("o_" + goal_atom.terms[0].name)
+                v_prime_id = vertex_mapper.str_to_int("o_" + goal_atom.terms[1].name)
                 graph.add_edge(
                     DECEdge(v_id, v_prime_id,
                         Color(
-                            value=color_mapper.str_to_int(predicate_name),
-                            labels={predicate_name})))
+                            value=color_mapper.str_to_int("p_" + predicate_name),
+                            info=predicate_name)))
+            else:
+                raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
 
         # Add constant edges
         for const in problem.domain.constants:
             const_name = const.name
-            v_id = vertex_mapper.str_to_int(const_name)
+            v_id = vertex_mapper.str_to_int("c_" + const_name)
+            v_prime_id = vertex_mapper.str_to_int("c_" + const_name)
             graph.add_edge(
                 DECEdge(v_id, v_id,
                     Color(
-                        value=color_mapper.str_to_int(const_name),
-                        labels={const_name})))
+                        value=color_mapper.str_to_int("c_" + const_name))))
+
         return graph
 
     def _create_directed_vertex_colored_graph(self, dec_graph: DECGraph):
         ### More compact encoding with loops integrated into vertex colors
         graph = DVCGraph(dec_graph.state)
+        next_free_vertex_id = max([vertex.id for vertex in dec_graph.vertices.values()]) + 1
         for vertex in dec_graph.vertices.values():
             graph.add_vertex(DVCVertex(
                 id=vertex.id,
@@ -171,26 +207,39 @@ class StateGraph:
         for source_id, edges in dec_graph.adj_list.items():
             # For each transition, encode the label in a helper vertex
             for edge in edges:
-                assert edge.source_id == source_id
-                v = dec_graph.vertices[source_id]
-                v_prime = dec_graph.vertices[edge.target_id]
-                v_middle = DVCVertex(len(graph.vertices), edge.color)
-                graph.add_vertex(v_middle)
-                graph.add_edge(DVCEdge(v.id, v_middle.id))
-                graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
+                if edge.color is not None:
+                    v = dec_graph.vertices[source_id]
+                    v_prime = dec_graph.vertices[edge.target_id]
+                    v_middle = DVCVertex(next_free_vertex_id, edge.color)
+                    next_free_vertex_id += 1
+                    graph.add_vertex(v_middle)
+                    graph.add_edge(DVCEdge(v.id, v_middle.id))
+                    graph.add_edge(DVCEdge(v_middle.id, v_prime.id))
+                else:
+                    v = dec_graph.vertices[source_id]
+                    v_prime = dec_graph.vertices[edge.target_id]
+                    graph.add_edge(DVCEdge(v.id, v_prime.id))
         return graph
 
     def _create_pynauty_graph(self, dvc_graph: DVCGraph):
+        # remap vertex indices
+        old_to_new_vertex_index = dict()
+        for vertex in dvc_graph.vertices.values():
+            old_to_new_vertex_index[vertex.id] = len(old_to_new_vertex_index)
+        adjacency_dict = defaultdict(set)
+        for source_id, edges in dvc_graph.adj_list.items():
+            adjacency_dict[old_to_new_vertex_index[source_id]] = set([old_to_new_vertex_index[edge.target_id] for edge in edges])
+        # compute vertex partitioning
         color_to_vertices = defaultdict(set)
         for vertex in dvc_graph.vertices.values():
-            color_to_vertices[vertex.color.value].add(vertex.id)
+            color_to_vertices[vertex.color.value].add(old_to_new_vertex_index[vertex.id])
         color_to_vertices = dict(sorted(color_to_vertices.items()))
         vertex_partitioning = list(color_to_vertices.values())
+
         graph = NautyGraph(
-            number_of_vertices=len(dvc_graph.vertices),
+            number_of_vertices=len(old_to_new_vertex_index),
             directed=True,
-            adjacency_dict={source_id: [edge.target_id for edge in edges]
-                            for source_id, edges in dvc_graph.adj_list.items()},
+            adjacency_dict=adjacency_dict,
             vertex_coloring=vertex_partitioning)
         return graph
 

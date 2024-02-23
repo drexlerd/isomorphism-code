@@ -4,7 +4,7 @@ from typing import MutableSet
 class Color:
     """ A color is just an integer with attached meaning for interpretation.
     """
-    def __init__(self, value: int, labels: MutableSet[str], info: str = ""):
+    def __init__(self, value: int, info: str = ""):
         """
         Args:
             value: the color representation as integer value
@@ -12,7 +12,6 @@ class Color:
             info: additional information for visualization
         """
         self._value = value
-        self._labels = labels
         self._info = info
 
     def __eq__(self, other : "Color"):
@@ -24,18 +23,12 @@ class Color:
     def __str__(self):
         """ Create a string representation with optional info.
         """
-        labels = "{" + ", ".join(self._labels) + "}"
-        return f"({self._value}, {labels}, \"{self._info}\")"
+        return f"({self._value}, \"{self._info}\")"
 
-    @property 
+    @property
     def value(self):
         return self._value
-    
-    @property
-    def labels(self):
-        return self._labels
-    
+
     @property
     def info(self):
         return self._info
-    

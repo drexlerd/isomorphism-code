@@ -1,6 +1,6 @@
 from graphviz import Digraph
 
-from typing import MutableSet, Dict
+from typing import MutableSet, Dict, Union
 
 from pymimir import State
 
@@ -21,14 +21,14 @@ class DECVertex:
     @property
     def id(self):
         return self._id
-  
-    @property 
+
+    @property
     def color(self):
         return self._color
 
-    
+
 class DECEdge:
-    def __init__(self, source_id: int, target_id: int, color: Color):
+    def __init__(self, source_id: int, target_id: int, color: Union[Color, None]):
         self._source_id = source_id
         self._target_id = target_id
         self._color = color
@@ -38,15 +38,15 @@ class DECEdge:
 
     def __hash__(self):
         return hash((self._source_id, self._target_id, self._color))
-    
-    @property 
+
+    @property
     def source_id(self):
         return self._source_id
-    
-    @property 
+
+    @property
     def target_id(self):
         return self._target_id
-    
+
     @property
     def color(self):
         return self._color
@@ -85,9 +85,12 @@ class DECGraph:
             dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color)}")
         for _, edges in self._adj_list.items():
             for edge in edges:
-                dot.edge(str(edge.source_id), str(edge.target_id), str(edge.color))
+                if edge.color is not None:
+                    dot.edge(str(edge.source_id), str(edge.target_id), str(edge.color))
+                else:
+                    dot.edge(str(edge.source_id), str(edge.target_id))
         dot.render(output_file_path, view=False, quiet=True)
-    
+
     @property
     def state(self):
         return self._state
@@ -95,7 +98,7 @@ class DECGraph:
     @property
     def vertices(self):
         return self._vertices
-    
+
     @property
     def adj_list(self):
         return self._adj_list

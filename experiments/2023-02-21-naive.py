@@ -72,7 +72,9 @@ else:
     ]
     TIME_LIMIT = 10
 ATTRIBUTES = [
+    "run_dir",
     Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_generated_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_transitions", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_deadends", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_goals", absolute=True, min_wins=True, scale="linear"),
@@ -106,7 +108,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_exact",
-        ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
+        ["python", "{main_script}", "exact", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--enable-pruning"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
