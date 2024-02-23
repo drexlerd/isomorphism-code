@@ -118,7 +118,7 @@ class StateGraph:
                     value=color_mapper.str_to_int(None),
                     info=obj.name))
             graph.add_vertex(v)
-        for typ in set([obj.type for obj in problem.objects if obj.type != "object"]):
+        for typ in set([obj.type for obj in problem.objects if obj.type.name != "object"]):
             v = DECVertex(
                 id=vertex_mapper.str_to_int("t_" + typ.name),
                 color=Color(

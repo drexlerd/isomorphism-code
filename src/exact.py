@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from collections import defaultdict, deque
 
-from pymimir import DomainParser, ProblemParser, StateSpace, LiftedSuccessorGenerator
+from pymimir import DomainParser, ProblemParser, StateSpace, LiftedSuccessorGenerator, GroundedSuccessorGenerator
 from tqdm import tqdm
 
 from .state_graph import StateGraph
@@ -48,7 +48,7 @@ class Driver:
         domain = domain_parser.parse()
         problem_parser = ProblemParser(str(self._problem_file_path))
         problem = problem_parser.parse(domain)
-        successor_generator = LiftedSuccessorGenerator(problem)
+        successor_generator = GroundedSuccessorGenerator(problem)
 
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
