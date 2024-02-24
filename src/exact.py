@@ -65,7 +65,7 @@ class Driver:
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
             num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
 
-            if (num_generated_states % 100 == 1):
+            if (num_generated_states % 10 == 1):
                 # Overwrite the line in the loop
                 print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.2f} seconds", end="")
                 sys.stdout.flush()

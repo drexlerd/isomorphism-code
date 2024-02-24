@@ -29,33 +29,13 @@ class UVCVertex:
         return self._color
 
 
-class UVCEdge:
-    def __init__(self, source_id: int, target_id: int):
-        self._source_id = source_id
-        self._target_id = target_id
-
-    def __eq__(self, other : "UVCEdge"):
-        return (self._source_id == other._source_id and self._target_id == other._target_id)
-
-    def __hash__(self):
-        return hash((self._source_id, self._target_id))
-
-    @property
-    def source_id(self):
-        return self._source_id
-
-    @property
-    def target_id(self):
-        return self._target_id
-
-
 class UVCGraph:
     """ A directed vertex colored graph
     """
     def __init__(self, state : State):
         self._state = state
         self._vertices: Dict[int, UVCVertex] = dict()
-        self._adj_list: Dict[int, MutableSet[UVCEdge]] = dict()
+        self._adj_list: Dict[int, MutableSet[int]] = dict()
 
     def add_vertex(self, vertex : UVCVertex):
         """ Add a vertex *uniquely* to the graph.
@@ -65,19 +45,19 @@ class UVCGraph:
         self._vertices[vertex.id] = vertex
         self._adj_list[vertex.id] = set()
 
-    def add_edge(self, edge : UVCEdge):
+    def add_edge(self, source_id: int, target_id: int):
         """ Add an edge *uniquely* to the graph.
         """
-        if edge.source_id not in self._adj_list:
+        if source_id not in self._adj_list:
             raise Exception("Source node of edge does not exist.")
-        if edge in self._adj_list[edge.source_id]:
+        if target_id in self._adj_list[source_id]:
             raise Exception("Edge with same source, target and color already exists.")
-        self._adj_list[edge.source_id].add(edge)
+        self._adj_list[source_id].add(target_id)
 
     def test_is_undirected(self):
         """ Returns true iff the graph is undirected.
         """
-        return all(all(UVCEdge(edge.target_id, edge.source_id) in self._adj_list[edge.target_id] for edge in edges) for edges in self._adj_list.values())
+        return all(all(source_id in self._adj_list[target_id] for target_id in target_ids) for source_id, target_ids in self._adj_list.items())
 
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.
@@ -85,10 +65,10 @@ class UVCGraph:
         dot = DotGraph(comment='UndirectedVertexColoredGraph')
         for vertex in self._vertices.values():
             dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color)}")
-        for _, edges in self._adj_list.items():
-            for edge in edges:
-                if edge.source_id < edge.target_id:  # only print 1 edge
-                    dot.edge(str(edge.source_id), str(edge.target_id))
+        for source_id, target_ids in self._adj_list.items():
+            for target_id in target_ids:
+                if source_id < target_id:  # only print 1 edge
+                    dot.edge(str(source_id), str(target_id))
         dot.render(output_file_path, view=False, quiet=True)
 
     @property
