@@ -82,6 +82,7 @@ class State:
 class Transition:
     source_index: int
     target_index: int
+    action_name: str
 
 
 class EquivalenceGraph:

@@ -10,6 +10,7 @@ from tqdm import tqdm
 from .state_graph import StateGraph
 from .equivalence_graph import EquivalenceGraph
 from .logger import initialize_logger, add_console_handler
+from .search_node import SearchNode
 
 
 class Driver:
@@ -51,18 +52,20 @@ class Driver:
         queue.append(initial_state)
         closed_list = set()
         closed_list.add(initial_state)
+        search_nodes = dict()
+        search_nodes[0] = SearchNode(0, None, None)
         num_generated_states += 1
 
         while queue:
             cur_state = queue.popleft()
 
             state_graph = StateGraph(cur_state, self._enable_undirected)
-            max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum([len(edges) for edges in state_graph.dec_graph.adj_list.values()]))
-            max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum([len(edges) for edges in state_graph.dvc_graph.adj_list.values()]))
+            max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum(len(edges) for edges in state_graph.dec_graph.adj_list.values()))
+            max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum(len(edges) for edges in state_graph.dvc_graph.adj_list.values()))
             num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
             num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
 
-            if (num_generated_states % 10 == 1):
+            if (num_generated_states % 100 == 1):
                 # Overwrite the line in the loop
                 print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.2f} seconds", end="")
                 sys.stdout.flush()
