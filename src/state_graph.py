@@ -123,12 +123,19 @@ class StateGraph:
                     value=index_mapper.str_to_int("p_" + pred.name),
                     info=pred.name))
             graph.add_vertex(v)
-        for pred in set(goal_literal.atom.predicate for goal_literal in problem.goal if goal_literal.atom.predicate.arity <= 1):
-            v = DECVertex(
-                id=index_mapper.str_to_int("p_" + pred.name + "_g"),
-                color=Color(
-                    value=index_mapper.str_to_int("p_" + pred.name + "_g"),
-                    info=pred.name + "_g"))
+        for negated, pred in set((goal_literal.negated, goal_literal.atom.predicate) for goal_literal in problem.goal if goal_literal.atom.predicate.arity <= 1):
+            if negated:
+                v = DECVertex(
+                    id=index_mapper.str_to_int("not p_" + pred.name + "_g"),
+                    color=Color(
+                        value=index_mapper.str_to_int("not p_" + pred.name + "_g"),
+                        info="not " + pred.name + "_g"))
+            else:
+                v = DECVertex(
+                    id=index_mapper.str_to_int("p_" + pred.name + "_g"),
+                    color=Color(
+                        value=index_mapper.str_to_int("p_" + pred.name + "_g"),
+                        info=pred.name + "_g"))
             graph.add_vertex(v)
 
         # Add atom edges
@@ -154,28 +161,33 @@ class StateGraph:
 
         # Add goal atom edges
         for goal_literal in problem.goal:
-            if goal_literal.negated:
-                raise Exception("Negated goal atoms currently not supported.")
-            goal_atom = goal_literal.atom
-            predicate_arity = goal_atom.predicate.arity
-            predicate_name = goal_atom.predicate.name + "_g"
-            if predicate_arity == 1:
-                v_id = index_mapper.str_to_int("p_" + predicate_name)
-                v_prime_id = index_mapper.str_to_int("o_" + goal_atom.terms[0].name)
+            if goal_literal.atom.predicate.arity == 1:
+                if goal_literal.negated:
+                    v_id = index_mapper.str_to_int("not p_" + goal_literal.atom.predicate.name + "_g")
+                else:
+                    v_id = index_mapper.str_to_int("p_" + goal_literal.atom.predicate.name + "_g")
+                v_prime_id = index_mapper.str_to_int("o_" + goal_literal.atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
                 graph.add_edge(DECEdge(v_prime_id, v_id, None))
-            elif predicate_arity == 2:
-                if predicate_name == "=":
+            elif goal_literal.atom.predicate.arity == 2:
+                if goal_literal.atom.predicate.name == "=":
                     # Skip equality
                     continue
-                v_id = index_mapper.str_to_int("o_" + goal_atom.terms[0].name)
-                v_prime_id = index_mapper.str_to_int("o_" + goal_atom.terms[1].name)
-                graph.add_edge(
-                    DECEdge(v_id, v_prime_id,
-                        Color(
-                            value=index_mapper.str_to_int("p_" + predicate_name),
-                            info=predicate_name)))
-            elif predicate_arity > 2:
+                v_id = index_mapper.str_to_int("o_" + goal_literal.atom.terms[0].name)
+                v_prime_id = index_mapper.str_to_int("o_" + goal_literal.atom.terms[1].name)
+                if goal_literal.negated:
+                    graph.add_edge(
+                        DECEdge(v_id, v_prime_id,
+                            Color(
+                                value=index_mapper.str_to_int("not p_" + goal_literal.atom.predicate.name + "_g"),
+                                info=goal_literal.atom.predicate.name + "_g")))
+                else:
+                    graph.add_edge(
+                        DECEdge(v_id, v_prime_id,
+                            Color(
+                                value=index_mapper.str_to_int("p_" + goal_literal.atom.predicate.name + "_g"),
+                                info=goal_literal.atom.predicate.name + "_g")))
+            elif goal_literal.atom.predicate.arity > 2:
                 raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
 
         # Add type edges

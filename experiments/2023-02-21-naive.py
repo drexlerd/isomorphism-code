@@ -51,7 +51,7 @@ if REMOTE:
         "spanner",
         "visitall",
     ]
-    TIME_LIMIT = 900
+    TIME_LIMIT = 60 * 60 * 6  # 6 hours
 else:
     ENV = LocalEnvironment(processes=4)
     SUITE = [
@@ -78,10 +78,6 @@ ATTRIBUTES = [
     Attribute("num_transitions", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_deadends", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_goals", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_vertices_dec_graph", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_vertices_dvc_graph", absolute=True, min_wins=True, scale="linear"),
-    Attribute("max_num_edges_dec_graph", absolute=True, min_wins=True, scale="linear"),
-    Attribute("max_num_edges_dvc_graph", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_equivalence_classes", absolute=True, min_wins=True, scale="linear"),
     Attribute("time_total", absolute=True, min_wins=True, scale="linear"),
     Attribute("average_time_per_state", absolute=True, min_wins=True, scale="linear"),

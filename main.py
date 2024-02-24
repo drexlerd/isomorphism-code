@@ -39,6 +39,7 @@ if __name__ == "__main__":
     exact_parser.add_argument("--enable-pruning", action="store_true", help="If specified, only a single representative for each equivalence is kept in a breadth-first-search.")
     exact_parser.add_argument("--enable-undirected", action="store_true", help="If specified, changes the representation to an undirected graph before computing the certificate.")
     exact_parser.add_argument("--dump-equivalence-graph", action="store_true", help="If specified, the equivalence graph json representation will be written to a file.")
+    exact_parser.add_argument("--debug", action="store_true", help="If specified, the equivalence graph json representation will be written to a file.")
 
     # Sub parser 2: wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
@@ -58,7 +59,8 @@ if __name__ == "__main__":
             args.dump_dot,
             args.enable_pruning,
             args.dump_equivalence_graph,
-            args.enable_undirected)
+            args.enable_undirected,
+            args.debug)
         driver.run()
     elif args.type == "wl":
         pass

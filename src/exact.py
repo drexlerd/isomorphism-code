@@ -14,13 +14,14 @@ from .search_node import SearchNode
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool, enable_undirected: bool):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool, enable_undirected: bool, debug: bool):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
         self._enable_pruning = enable_pruning
         self._dump_equivalence_graph = dump_equivalence_graph
         self._enable_undirected = enable_undirected
+        self._debug = debug
         self._logger = initialize_logger("exact")
         self._logger.setLevel(verbosity)
         add_console_handler(self._logger)
@@ -32,10 +33,6 @@ class Driver:
         print("Problem file:", self._problem_file_path)
         print()
 
-        num_vertices_dec_graph = 0
-        num_vertices_dvc_graph = 0
-        max_num_edges_dec_graph = 0
-        max_num_edges_dvc_graph = 0
         num_generated_states = 0
         equivalence_classes = defaultdict(set)
 
@@ -60,12 +57,8 @@ class Driver:
             cur_state = queue.popleft()
 
             state_graph = StateGraph(cur_state, self._enable_undirected)
-            max_num_edges_dec_graph = max(max_num_edges_dec_graph, sum(len(edges) for edges in state_graph.dec_graph.adj_list.values()))
-            max_num_edges_dvc_graph = max(max_num_edges_dvc_graph, sum(len(edges) for edges in state_graph.dvc_graph.adj_list.values()))
-            num_vertices_dec_graph = len(state_graph.dec_graph.vertices)
-            num_vertices_dvc_graph = len(state_graph.dvc_graph.vertices)
 
-            if (num_generated_states % 10 == 1):
+            if (num_generated_states % 100 == 1):
                 # Overwrite the line in the loop
                 print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.2f} seconds", end="")
                 sys.stdout.flush()
@@ -93,10 +86,10 @@ class Driver:
         print(f"Total time: {runtime:.2f} seconds")
         print("Number of generated states:", num_generated_states)
         print("Number of equivalence classes:", len(equivalence_classes))
-        print("Number of vertices in DEC graph:", num_vertices_dec_graph)
-        print("Number of vertices in DVC graph:", num_vertices_dvc_graph)
-        print("Maximum number of edges in DEC graph:", max_num_edges_dec_graph)
-        print("Maximum number of edges in DVC graph:", max_num_edges_dvc_graph)
+        print("Number of vertices in DEC graph:", max(max(len(state_graph.dec_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
+        print("Number of vertices in DVC graph:", max(max(len(state_graph.dvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
+        if self._enable_undirected:
+            print("Number of vertices in UVC graph:", max(max(len(state_graph.uvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
         print()
 
         if self._dump_dot:
