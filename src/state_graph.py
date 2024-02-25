@@ -102,27 +102,6 @@ class StateGraph:
                     value=index_mapper.str_to_int("t_" + obj.type.name),
                     info=obj.type.name))
             graph.add_vertex(v)
-        for const in problem.domain.constants:
-            v = DECVertex(
-                id=index_mapper.str_to_int("c_" + const.name),
-                color=Color(
-                    value=index_mapper.str_to_int("c_" + const.name),
-                    info="constant_" + const.name))
-            graph.add_vertex(v)
-        for negated, pred in set((goal_literal.negated, goal_literal.atom.predicate) for goal_literal in problem.goal if goal_literal.atom.predicate.arity <= 1):
-            if negated:
-                v = DECVertex(
-                    id=index_mapper.str_to_int("not p_" + pred.name + "_g"),
-                    color=Color(
-                        value=index_mapper.str_to_int("not p_" + pred.name + "_g"),
-                        info="not " + pred.name + "_g"))
-            else:
-                v = DECVertex(
-                    id=index_mapper.str_to_int("p_" + pred.name + "_g"),
-                    color=Color(
-                        value=index_mapper.str_to_int("p_" + pred.name + "_g"),
-                        info=pred.name + "_g"))
-            graph.add_vertex(v)
 
         # Add atom edges
         for dynamic_atom in state.get_atoms():
@@ -131,7 +110,6 @@ class StateGraph:
                 graph.add_edge(DECEdge(v_id, v_id,
                     Color(value=index_mapper.str_to_int("p_" + dynamic_atom.predicate.name),
                           info=dynamic_atom.predicate.name)))
-                # graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
@@ -149,13 +127,15 @@ class StateGraph:
         # Add goal atom edges
         for goal_literal in problem.goal:
             if goal_literal.atom.predicate.arity == 1:
+                v_id = index_mapper.str_to_int("o_" + goal_literal.atom.terms[0].name)
                 if goal_literal.negated:
-                    v_id = index_mapper.str_to_int("not p_" + goal_literal.atom.predicate.name + "_g")
+                    graph.add_edge(DECEdge(v_id, v_id,
+                        Color(value=index_mapper.str_to_int("not p_" + goal_literal.atom.predicate.name + "_g"),
+                            info="not " + goal_literal.atom.predicate.name + "_g")))
                 else:
-                    v_id = index_mapper.str_to_int("p_" + goal_literal.atom.predicate.name + "_g")
-                v_prime_id = index_mapper.str_to_int("o_" + goal_literal.atom.terms[0].name)
-                graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                # graph.add_edge(DECEdge(v_prime_id, v_id, None))
+                    graph.add_edge(DECEdge(v_id, v_id,
+                        Color(value=index_mapper.str_to_int("p_" + goal_literal.atom.predicate.name + "_g"),
+                            info=goal_literal.atom.predicate.name + "_g")))
             elif goal_literal.atom.predicate.arity == 2:
                 if goal_literal.atom.predicate.name == "=":
                     # Skip equality
@@ -177,21 +157,12 @@ class StateGraph:
             elif goal_literal.atom.predicate.arity > 2:
                 raise Exception("Got predicate of arity greater than 2! Implementation does not support this.")
 
-        # Add type edges
-        for obj in problem.objects:
-            if obj.type.name == "object":  # skip because every PDDL object is of type object
-                continue
-            v_id = index_mapper.str_to_int("t_" + obj.type.name)
-            v_prime_id = index_mapper.str_to_int("o_" + obj.name)
-            graph.add_edge(DECEdge(v_id, v_prime_id, None))
-            #graph.add_edge(DECEdge(v_prime_id, v_id, None))
-
         # Add constant edges
         for const in problem.domain.constants:
-            v_id = index_mapper.str_to_int("c_" + const.name)
-            v_prime_id = index_mapper.str_to_int("o_" + const.name)
-            graph.add_edge(DECEdge(v_id, v_prime_id, None))
-            #graph.add_edge(DECEdge(v_prime_id, v_id, None))
+            v_id = index_mapper.str_to_int("o_" + const.name)
+            graph.add_edge(DECEdge(v_id, v_id,
+                Color(value=index_mapper.str_to_int("c_" + const.name),
+                      info="constant " + const.name)))
 
         return graph
 
