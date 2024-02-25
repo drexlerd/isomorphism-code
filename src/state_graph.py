@@ -144,7 +144,7 @@ class StateGraph:
                 v_id = index_mapper.str_to_int("p_" + dynamic_atom.predicate.name)
                 v_prime_id = index_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                graph.add_edge(DECEdge(v_prime_id, v_id, None))
+                # graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
                     # Skip equality
@@ -168,7 +168,7 @@ class StateGraph:
                     v_id = index_mapper.str_to_int("p_" + goal_literal.atom.predicate.name + "_g")
                 v_prime_id = index_mapper.str_to_int("o_" + goal_literal.atom.terms[0].name)
                 graph.add_edge(DECEdge(v_id, v_prime_id, None))
-                graph.add_edge(DECEdge(v_prime_id, v_id, None))
+                # graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif goal_literal.atom.predicate.arity == 2:
                 if goal_literal.atom.predicate.name == "=":
                     # Skip equality
@@ -197,14 +197,14 @@ class StateGraph:
             v_id = index_mapper.str_to_int("t_" + obj.type.name)
             v_prime_id = index_mapper.str_to_int("o_" + obj.name)
             graph.add_edge(DECEdge(v_id, v_prime_id, None))
-            graph.add_edge(DECEdge(v_prime_id, v_id, None))
+            #graph.add_edge(DECEdge(v_prime_id, v_id, None))
 
         # Add constant edges
         for const in problem.domain.constants:
             v_id = index_mapper.str_to_int("c_" + const.name)
             v_prime_id = index_mapper.str_to_int("o_" + const.name)
             graph.add_edge(DECEdge(v_id, v_prime_id, None))
-            graph.add_edge(DECEdge(v_prime_id, v_id, None))
+            #graph.add_edge(DECEdge(v_prime_id, v_id, None))
 
         return graph
 
