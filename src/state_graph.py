@@ -99,15 +99,8 @@ class StateGraph:
             v = DECVertex(
                 id=index_mapper.str_to_int("o_" + obj.name),
                 color=Color(
-                    value=index_mapper.str_to_int(None),
-                    info=obj.name))
-            graph.add_vertex(v)
-        for typ in set(obj.type for obj in problem.objects if obj.type.name != "object"):
-            v = DECVertex(
-                id=index_mapper.str_to_int("t_" + typ.name),
-                color=Color(
-                    value=index_mapper.str_to_int("t_" + typ.name),
-                    info=typ.name))
+                    value=index_mapper.str_to_int("t_" + obj.type.name),
+                    info=obj.type.name))
             graph.add_vertex(v)
         for const in problem.domain.constants:
             v = DECVertex(
@@ -115,13 +108,6 @@ class StateGraph:
                 color=Color(
                     value=index_mapper.str_to_int("c_" + const.name),
                     info="constant_" + const.name))
-            graph.add_vertex(v)
-        for pred in set(atom.predicate for atom in state.get_atoms() if atom.predicate.arity <=1):
-            v = DECVertex(
-                id=index_mapper.str_to_int("p_" + pred.name),
-                color=Color(
-                    value=index_mapper.str_to_int("p_" + pred.name),
-                    info=pred.name))
             graph.add_vertex(v)
         for negated, pred in set((goal_literal.negated, goal_literal.atom.predicate) for goal_literal in problem.goal if goal_literal.atom.predicate.arity <= 1):
             if negated:
@@ -141,9 +127,10 @@ class StateGraph:
         # Add atom edges
         for dynamic_atom in state.get_atoms():
             if dynamic_atom.predicate.arity == 1:
-                v_id = index_mapper.str_to_int("p_" + dynamic_atom.predicate.name)
-                v_prime_id = index_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
-                graph.add_edge(DECEdge(v_id, v_prime_id, None))
+                v_id = index_mapper.str_to_int("o_" + dynamic_atom.terms[0].name)
+                graph.add_edge(DECEdge(v_id, v_id,
+                    Color(value=index_mapper.str_to_int("p_" + dynamic_atom.predicate.name),
+                          info=dynamic_atom.predicate.name)))
                 # graph.add_edge(DECEdge(v_prime_id, v_id, None))
             elif dynamic_atom.predicate.arity == 2:
                 if dynamic_atom.predicate.name == "=":
