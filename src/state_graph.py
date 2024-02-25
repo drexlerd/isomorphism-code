@@ -206,31 +206,31 @@ class StateGraph:
                     v_prime = dvc_graph.vertices[edge.target_id]
                     graph.add_edge(v.id, v_prime.id)
                 else:
-                    # Edge is directed
+                    # Edge is directed, create 1 uncolored helper nodes to encode tail and 2 uncolored helper nodes to encode head
                     v = dvc_graph.vertices[source_id]
                     v_prime = dvc_graph.vertices[edge.target_id]
                     v_tail_main = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
                     next_free_vertex_id += 1
-                    v_tail_1 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
-                    next_free_vertex_id += 1
+                    #v_tail_1 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    #next_free_vertex_id += 1
                     v_head_main = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
                     next_free_vertex_id += 1
                     v_head_1 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
                     next_free_vertex_id += 1
-                    v_head_2 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
-                    next_free_vertex_id += 1
+                    #v_head_2 = DVCVertex(next_free_vertex_id, Color(color_mapper.str_to_int(None)))
+                    #next_free_vertex_id += 1
 
                     graph.add_vertex(v_tail_main)
-                    graph.add_vertex(v_tail_1)
+                    #graph.add_vertex(v_tail_1)
                     graph.add_vertex(v_head_main)
                     graph.add_vertex(v_head_1)
-                    graph.add_vertex(v_head_2)
+                    #graph.add_vertex(v_head_2)
 
                     graph.add_edge(v.id, v_tail_main.id)
                     graph.add_edge(v_tail_main.id, v.id)
 
-                    graph.add_edge(v_tail_main.id, v_tail_1.id)
-                    graph.add_edge(v_tail_1.id, v_tail_main.id)
+                    #graph.add_edge(v_tail_main.id, v_tail_1.id)
+                    #graph.add_edge(v_tail_1.id, v_tail_main.id)
 
                     graph.add_edge(v_tail_main.id, v_head_main.id)
                     graph.add_edge(v_head_main.id, v_tail_main.id)
@@ -238,8 +238,8 @@ class StateGraph:
                     graph.add_edge(v_head_main.id, v_head_1.id)
                     graph.add_edge(v_head_1.id, v_head_main.id)
 
-                    graph.add_edge(v_head_1.id, v_head_2.id)
-                    graph.add_edge(v_head_2.id, v_head_1.id)
+                    #graph.add_edge(v_head_1.id, v_head_2.id)
+                    #graph.add_edge(v_head_2.id, v_head_1.id)
 
                     graph.add_edge(v_head_main.id, v_prime.id)
                     graph.add_edge(v_prime.id, v_head_main.id)
