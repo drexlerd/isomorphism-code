@@ -8,7 +8,17 @@ from pymimir import DomainParser, ProblemParser, StateSpace, LiftedSuccessorGene
 from tqdm import tqdm
 
 from .state_graph import StateGraph
-from .equivalence_graph import EquivalenceGraph
+from .equivalence_graph import EquivalenceGraph as XEquivalenceGraph, \
+    Object as XObject, \
+    Constant as XConstant, \
+    Predicate as XPredicate, \
+    Atom as XAtom, \
+    Literal as XLiteral, \
+    Domain as XDomain, \
+    Problem as XProblem, \
+    State as XState, \
+    Action as XAction, \
+    Transition as XTransition
 from .logger import initialize_logger, add_console_handler
 from .search_node import SearchNode
 
@@ -50,7 +60,7 @@ class Driver:
         closed_list = set()
         closed_list.add(initial_state)
         search_nodes = dict()
-        search_nodes[0] = SearchNode(0, None, None)
+        search_nodes[initial_state] = SearchNode(None, None)
         num_generated_states += 1
 
         while queue:
@@ -74,6 +84,7 @@ class Driver:
                 if suc_state in closed_list:
                     continue
                 closed_list.add(suc_state)
+                search_nodes[suc_state] = SearchNode(cur_state, applicable_action)
 
                 num_generated_states += 1
 
@@ -94,14 +105,38 @@ class Driver:
 
         if self._dump_dot:
             print("Dumping dot files to \"outputs/\"")
-            Path("outputs/decs").mkdir(parents=True, exist_ok=True)
-            Path("outputs/dvcs").mkdir(parents=True, exist_ok=True)
-            if self._enable_undirected:
-                Path("outputs/uvcs").mkdir(parents=True, exist_ok=True)
             for class_id, state_graphs in enumerate(tqdm(equivalence_classes.values(), file=sys.stdout)):
-                Path(f"outputs/dvcs/{class_id}").mkdir(parents=True, exist_ok=True)
                 for i, state_graph in enumerate(state_graphs):
                     state_graph.dec_graph.to_dot(f"outputs/decs/{class_id}/{i}.gc")
                     state_graph.dvc_graph.to_dot(f"outputs/dvcs/{class_id}/{i}.gc")
                     if self._enable_undirected:
                         state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")
+
+        if self._dump_equivalence_graph:
+            constant_map = {const : XConstant(const.name) for const in domain.constants}
+            object_map = {obj: XObject(obj.name) for obj in problem.objects}
+            predicate_map = {pred: XPredicate(pred.name, pred.arity) for pred in domain.predicates}
+            static_predicate_map = {pred: XPredicate(pred.name, pred.arity) for pred in domain.static_predicates}
+            encountered_atom_map = {atom: XAtom(predicate_map[atom.predicate], [object_map[obj] for obj in atom.terms]) for atom in problem.get_encountered_atoms()}
+            goal_literal_map = {literal: XLiteral(XAtom(predicate_map[literal.atom.predicate], [object_map[obj] for obj in literal.atom.terms]), literal.negated) for literal in problem.goal}
+            state_map = {state: index for index, state in enumerate(closed_list)}
+            states = {
+                state_map[state_graph.state]: XState(
+                    state_map[state_graph.state],
+                    [encountered_atom_map[atom] for atom in state_graph.state.get_static_atoms()],
+                    [encountered_atom_map[atom] for atom in state_graph.state.get_fluent_atoms()],
+                    class_id
+                )
+                for class_id, state_graphs in enumerate(equivalence_classes.values())
+                for state_graph in state_graphs
+            }
+            transitions = defaultdict(list)
+            for target_id, state in enumerate(closed_list):
+                if search_nodes[state].parent_state is not None:
+                    source_id = state_map[search_nodes[state].parent_state]
+                    transitions[source_id].append(XTransition(source_id, target_id, XAction(search_nodes[state].creating_action.schema.name, [object_map[obj] for obj in search_nodes[state].creating_action.get_arguments()])))
+            domain = XDomain(list(constant_map.values()), list(predicate_map.values()), list(static_predicate_map.values()))
+            problem = XProblem(list(encountered_atom_map.values()), list(goal_literal_map.values()))
+            graph = XEquivalenceGraph(domain, problem, states, transitions)
+            graph.write(Path("equivalence_graph.json").absolute())
+            # graph.read(Path("equivalence_graph.json").absolute())
