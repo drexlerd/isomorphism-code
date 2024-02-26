@@ -103,8 +103,8 @@ class Driver:
             for class_id, state_graphs in enumerate(tqdm(equivalence_classes.values(), file=sys.stdout)):
                 for i, state_graph in enumerate(state_graphs):
                     state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")
-                    print(state_graph.state.get_atoms())
-                print()
+                    #print(state_graph.state.get_atoms())
+                #print()
 
         if self._dump_equivalence_graph:
             constant_map = {const : XConstant(const.name) for const in domain.constants}
