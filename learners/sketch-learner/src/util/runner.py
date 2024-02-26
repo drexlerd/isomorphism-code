@@ -4,8 +4,8 @@ import sys
 
 from pathlib import Path
 
-from learner.src.util.bootstrap import setup_argparser
-from learner.src.util.defaults import generate_experiment
+from src.util.bootstrap import setup_argparser
+from src.util.defaults import generate_experiment
 
 
 def import_from_file(filename):
@@ -34,7 +34,7 @@ def report_and_exit(msg):
     sys.exit(-1)
 
 
-def do(domain_filename, task_dir, workspace, expid=None, pipeline=None, width=None, concept_complexity_limit=None, role_complexity_limit=None, boolean_complexity_limit=None, count_numerical_complexity_limit=None, distance_numerical_complexity_limit=None):
+def do(task_dir, workspace, expid=None, pipeline=None, width=None, concept_complexity_limit=None, role_complexity_limit=None, boolean_complexity_limit=None, count_numerical_complexity_limit=None, distance_numerical_complexity_limit=None):
     experiment = dict()
     if expid is not None:
         name_parts = expid.split(":")
@@ -53,10 +53,8 @@ def do(domain_filename, task_dir, workspace, expid=None, pipeline=None, width=No
             report_and_exit(f'No experiment named "{expname}" in current experiment script')
         experiment = experiments[expname]
 
-        assert "domain_filename" in experiment
-        assert "instance_filenames" in experiment
+        experiment["instance_filenames"] = list(task_dir.iterdir())
     else:
-        experiment["domain_filename"] = domain_filename
         experiment["instance_filenames"] = list(task_dir.iterdir())
     parameters = experiment
 
@@ -84,8 +82,7 @@ def do(domain_filename, task_dir, workspace, expid=None, pipeline=None, width=No
 
 def run():
     args = setup_argparser().parse_args(sys.argv[1:])
-    do( Path(args.domain).resolve(),
-        Path(args.task_dir).resolve(),
+    do( Path(args.eq_dir).resolve(),
         Path(args.workspace).resolve(),
         args.exp_id,
         args.pipeline,

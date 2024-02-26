@@ -4,20 +4,20 @@ from dlplan.policy import PolicyMinimizer
 from typing import List
 from termcolor import colored
 
-from learner.src.asp.asp_factory import ASPFactory
-from learner.src.asp.returncodes import ClingoExitCode
+from src.asp.asp_factory import ASPFactory
+from src.asp.returncodes import ClingoExitCode
 
 
-from learner.src.instance_data.instance_data import InstanceData
-from learner.src.instance_data.instance_information import InstanceInformation
-from learner.src.iteration_data.feature_pool_utils import compute_feature_pool
-from learner.src.iteration_data.feature_valuations_utils import compute_per_state_feature_valuations
-from learner.src.iteration_data.dlplan_policy_factory import D2sepDlplanPolicyFactory
-from learner.src.iteration_data.sketch import Sketch
-from learner.src.iteration_data.state_pair_equivalence_utils import compute_state_pair_equivalences
-from learner.src.iteration_data.tuple_graph_equivalence_utils import compute_tuple_graph_equivalences, minimize_tuple_graph_equivalences
-from learner.src.util.timer import CountDownTimer
-from learner.src.util.command import create_experiment_workspace
+from src.instance_data.instance_data import InstanceData
+from src.instance_data.instance_information import InstanceInformation
+from src.iteration_data.feature_pool_utils import compute_feature_pool
+from src.iteration_data.feature_valuations_utils import compute_per_state_feature_valuations
+from src.iteration_data.dlplan_policy_factory import D2sepDlplanPolicyFactory
+from src.iteration_data.sketch import Sketch
+from src.iteration_data.state_pair_equivalence_utils import compute_state_pair_equivalences
+from src.iteration_data.tuple_graph_equivalence_utils import compute_tuple_graph_equivalences, minimize_tuple_graph_equivalences
+from src.util.timer import CountDownTimer
+from src.util.command import create_experiment_workspace
 
 
 

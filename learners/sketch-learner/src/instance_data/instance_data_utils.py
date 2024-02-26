@@ -11,13 +11,13 @@ from typing import  List, Dict, Tuple
 from dlplan.core import DenotationsCaches
 from dlplan.state_space import GeneratorExitCode, generate_state_space
 
-from learner.src.domain_data.domain_data import DomainData
-from learner.src.domain_data.domain_data_utils import compute_domain_data
-from learner.src.instance_data.instance_data import InstanceData
-from learner.src.instance_data.instance_information import InstanceInformation
-from learner.src.instance_data.tuple_graph_utils import compute_tuple_graphs
-from learner.src.iteration_data.sketch import Sketch
-from learner.src.util.command import create_experiment_workspace
+from src.domain_data.domain_data import DomainData
+from src.domain_data.domain_data_utils import compute_domain_data
+from src.instance_data.instance_data import InstanceData
+from src.instance_data.instance_information import InstanceInformation
+from src.instance_data.tuple_graph_utils import compute_tuple_graphs
+from src.iteration_data.sketch import Sketch
+from src.util.command import create_experiment_workspace
 
 
 def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:

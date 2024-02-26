@@ -5,14 +5,14 @@ import os
 from pathlib import Path
 from typing import List
 
-from learner.src.util.command import create_experiment_workspace, change_working_directory, create_sym_link
+from src.util.command import create_experiment_workspace, change_working_directory, create_sym_link
 
-from learner.src.driver import Experiment, BASEDIR
-from learner.src.steps import generate_pipeline
-from learner.src.instance_data.instance_information import InstanceInformation
+from src.driver import Experiment, BASEDIR
+from src.steps import generate_pipeline
+from src.instance_data.instance_information import InstanceInformation
 
 
-def generate_experiment(domain_filename: str, instance_filenames: List[str], workspace: str, **kwargs):
+def generate_experiment(instance_filenames: List[str], workspace: str, **kwargs):
     """ """
     defaults = dict(
         # The overall time limit in seconds
@@ -49,7 +49,6 @@ def generate_experiment(domain_filename: str, instance_filenames: List[str], wor
 
     workspace = Path(workspace).resolve()
     parameters["workspace"] = workspace
-    parameters["domain_filename"] = domain_filename
 
     # root level 0 directory for experimental data
     create_experiment_workspace(workspace, rm_if_existed=False)

@@ -3,9 +3,9 @@ from typing import  List
 from dlplan.core import SyntacticElementFactory
 from dlplan.generator import FeatureGenerator
 
-from learner.src.domain_data.domain_data import DomainData
-from learner.src.instance_data.instance_data import InstanceData
-from learner.src.iteration_data.feature_pool import Feature, FeaturePool
+from src.domain_data.domain_data import DomainData
+from src.instance_data.instance_data import InstanceData
+from src.iteration_data.feature_pool import Feature, FeaturePool
 
 
 def add_features(syntactic_element_factory: SyntacticElementFactory, feature_reprs: List[str], feature_pool: FeaturePool):

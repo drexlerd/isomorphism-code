@@ -3,8 +3,8 @@ from typing import List
 from collections import defaultdict
 
 
-from learner.src.instance_data.instance_data import InstanceData
-from learner.src.iteration_data.tuple_graph_equivalence import TupleGraphEquivalence, PerStateTupleGraphEquivalences
+from src.instance_data.instance_data import InstanceData
+from src.iteration_data.tuple_graph_equivalence import TupleGraphEquivalence, PerStateTupleGraphEquivalences
 
 
 

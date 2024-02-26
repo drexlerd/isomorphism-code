@@ -2,11 +2,11 @@ import re
 
 from abc import ABC, abstractmethod
 
-from dlplan.policy import PolicyBuilder
+from dlplan.policy import PolicyFactory
 from clingo import Symbol
 from typing import List
 
-from learner.src.domain_data.domain_data import DomainData
+from src.domain_data.domain_data import DomainData
 
 
 class DlplanPolicyFactory(ABC):
@@ -52,7 +52,7 @@ class ExplicitDlplanPolicyFactory(DlplanPolicyFactory):
                     f_idx_to_dlplan_numerical[f_idx] = domain_data.feature_pool.numerical_features.f_idx_to_feature[f_idx].dlplan_feature
         return f_idx_to_dlplan_boolean, f_idx_to_dlplan_numerical
 
-    def _add_rules(self, policy_builder: PolicyBuilder, symbols: List[Symbol], f_idx_to_dlplan_boolean, f_idx_to_dlplan_numerical):
+    def _add_rules(self, policy_builder: PolicyFactory, symbols: List[Symbol], f_idx_to_dlplan_boolean, f_idx_to_dlplan_numerical):
         """ """
         rules_dict = dict()
         for symbol in symbols:

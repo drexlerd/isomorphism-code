@@ -1,18 +1,17 @@
 from dlplan.core import DenotationsCaches
-from dlplan.novelty import TupleGraph
 from dlplan.state_space import StateSpace
 
 from dataclasses import dataclass
 from typing import List, Dict
 
-from learner.src.domain_data.domain_data import DomainData
-from learner.src.instance_data.instance_information import InstanceInformation
-from learner.src.instance_data.tuple_graph import PerStateTupleGraphs
-from learner.src.iteration_data.feature_valuations import PerStateFeatureValuations
-from learner.src.iteration_data.state_pair_equivalence import PerStateStatePairEquivalences
-from learner.src.iteration_data.tuple_graph_equivalence import PerStateTupleGraphEquivalences
-from learner.src.util.command import write_file
-from learner.src.util.command import create_experiment_workspace
+from src.domain_data.domain_data import DomainData
+from src.instance_data.instance_information import InstanceInformation
+from src.instance_data.tuple_graph import PerStateTupleGraphs
+from src.iteration_data.feature_valuations import PerStateFeatureValuations
+from src.iteration_data.state_pair_equivalence import PerStateStatePairEquivalences
+from src.iteration_data.tuple_graph_equivalence import PerStateTupleGraphEquivalences
+from src.util.command import write_file
+from src.util.command import create_experiment_workspace
 
 
 @dataclass

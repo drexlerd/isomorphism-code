@@ -7,17 +7,16 @@ import sys
 import numpy as np
 from pathlib import Path
 
-from learner.src.returncodes import ExitCode
-from learner.src.errors import CriticalPipelineError
-from learner.src.util import console
-from learner.src.util.naming import compute_serialization_name
-from learner.src.util.serialization import deserialize, serialize
-from learner.src.util import performance
+from src.returncodes import ExitCode
+from src.errors import CriticalPipelineError
+from src.util import console
+from src.util.naming import compute_serialization_name
+from src.util.serialization import deserialize, serialize
+from src.util import performance
 
 
 DIR = Path(__file__).resolve().parent
 BASEDIR = DIR.parent.parent
-BENCHMARK_DIR = BASEDIR / 'benchmarks'
 
 
 class InvalidConfigParameter(Exception):

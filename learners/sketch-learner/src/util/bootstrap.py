@@ -2,7 +2,7 @@ import logging
 import argparse
 import sys
 
-from learner.src.util.console import get_terminal_size
+from src.util.console import get_terminal_size
 
 _LOG_LEVEL = None
 
@@ -76,9 +76,7 @@ def get_parser(add_log_option=True, **kwargs):
 
 def setup_argparser():
     parser = get_parser()
-    parser.add_argument('--domain', help="The path to the domain file.", required=True)
-
-    parser.add_argument('--task_dir', help="The path to the directory containing the instance.", required=True)
+    parser.add_argument('--eq_dir', help="The path to the directory containing the equivalence classes.", required=True)
 
     parser.add_argument('--workspace', metavar='dir', default="workspace_default/",
                         help="The directory where the experiment outputs will be left. If none specified, uses"

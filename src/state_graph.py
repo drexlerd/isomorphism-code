@@ -123,15 +123,15 @@ class StateGraph:
                     v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g"), "not p_" + atom.predicate.name + "_g"))
                 else:
                     v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g"), "p_" + atom.predicate.name + "_g"))
-                v_helper_prev = v_pos
-                graph.add_vertex(v_helper_prev)
+                graph.add_vertex(v_pos)
                 add_vertex_id += 1
 
                 # Connect predicate node to object node
-                graph.add_edge(v_object_id, v_helper_prev.id)
-                graph.add_edge(v_helper_prev.id, v_object_id)
+                graph.add_edge(v_object_id, v_pos.id)
+                graph.add_edge(v_pos.id, v_object_id)
 
-                for _ in range(pos - 1):
+                v_helper_prev = v_pos
+                for _ in range(pos):
 
                     # Add pos many uncolored helper nodes
                     if negated:
@@ -147,7 +147,7 @@ class StateGraph:
                         graph.add_edge(v_helper.id, v_helper_prev.id)
                     v_helper_prev = v_helper
 
-                if (v_pos_prev is not None):
+                if v_pos_prev is not None:
                     # connect with previous positional node
                     graph.add_edge(v_pos_prev.id, v_pos.id)
                     graph.add_edge(v_pos.id, v_pos_prev.id)

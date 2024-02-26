@@ -1,19 +1,19 @@
-from dlplan.policy import PolicyBuilder
+from dlplan.policy import PolicyFactory
 
 import math
 
 from collections import defaultdict
 from typing import List
 
-from learner.src.domain_data.domain_data import DomainData
-from learner.src.instance_data.instance_data import InstanceData
-from learner.src.iteration_data.state_pair_equivalence import StatePairEquivalenceClasses, StatePairEquivalence, PerStateStatePairEquivalences
-from learner.src.iteration_data.feature_pool import FeaturePool
-from learner.src.iteration_data.feature_valuations import FeatureValuations
+from src.domain_data.domain_data import DomainData
+from src.instance_data.instance_data import InstanceData
+from src.iteration_data.state_pair_equivalence import StatePairEquivalenceClasses, StatePairEquivalence, PerStateStatePairEquivalences
+from src.iteration_data.feature_pool import FeaturePool
+from src.iteration_data.feature_valuations import FeatureValuations
 
 
 
-def make_conditions(policy_builder: PolicyBuilder,
+def make_conditions(policy_builder: PolicyFactory,
     feature_pool: FeaturePool,
     feature_valuations: FeatureValuations):
     """ Create conditions over all features that are satisfied in source_idx """
@@ -32,7 +32,7 @@ def make_conditions(policy_builder: PolicyBuilder,
             conditions.add(policy_builder.add_eq_condition(numerical.dlplan_feature))
     return conditions
 
-def make_effects(policy_builder: PolicyBuilder,
+def make_effects(policy_builder: PolicyFactory,
     feature_pool: FeaturePool,
     source_feature_valuations: FeatureValuations,
     target_feature_valuations: FeatureValuations):

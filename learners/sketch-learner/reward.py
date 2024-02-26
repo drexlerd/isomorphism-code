@@ -1,5 +1,5 @@
-from learner.src.util.misc import update_dict
-from learner.src.driver import BENCHMARK_DIR
+from src.util.misc import update_dict
+from src.driver import BENCHMARK_DIR
 
 
 def experiments():
