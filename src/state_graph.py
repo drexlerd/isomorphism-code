@@ -91,7 +91,7 @@ class StateGraph:
                 graph.add_edge(v_pos.id, v_object_id)
 
                 v_helper_prev = v_pos
-                for _ in range(pos):
+                for _ in range(pos + 1):
 
                     # Add pos many uncolored helper nodes
                     v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name), "p_" + atom.predicate.name))
@@ -131,7 +131,7 @@ class StateGraph:
                 graph.add_edge(v_pos.id, v_object_id)
 
                 v_helper_prev = v_pos
-                for _ in range(pos):
+                for _ in range(pos + 1):
 
                     # Add pos many uncolored helper nodes
                     if negated:
