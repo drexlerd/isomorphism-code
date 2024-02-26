@@ -97,10 +97,10 @@ class Driver:
         print(f"Total time: {runtime:.2f} seconds")
         print("Number of generated states:", num_generated_states)
         print("Number of equivalence classes:", len(equivalence_classes))
-        print("Number of vertices in DEC graph:", max(max(len(state_graph.dec_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
-        print("Number of vertices in DVC graph:", max(max(len(state_graph.dvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
-        if self._enable_undirected:
-            print("Number of vertices in UVC graph:", max(max(len(state_graph.uvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
+        #print("Number of vertices in DEC graph:", max(max(len(state_graph.dec_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
+        #print("Number of vertices in DVC graph:", max(max(len(state_graph.dvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
+        #if self._enable_undirected:
+        #    print("Number of vertices in UVC graph:", max(max(len(state_graph.uvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
         print()
 
         if self._dump_dot:

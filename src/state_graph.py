@@ -43,6 +43,9 @@ class NameToIndexMapper:
             factor *= len(self._str_to_int)
         return number
 
+    def size(self):
+        return len(self._str_to_int)
+
 
 class StateGraph:
     """
@@ -53,6 +56,14 @@ class StateGraph:
         self._state = state
         # Bookkeeping: create mappings from names to integers
         index_mapper = self._create_index_mapper(state)
+
+        self._uvc_graph = self._create_undirected_vertex_colored_graph_2(state, index_mapper)
+        assert self._uvc_graph.test_is_undirected()
+        self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
+        self._nauty_certificate = nauty_certificate(self._nauty_graph)
+        #self._uvc_graph.to_dot()
+        #exit(1)
+        return
 
         ### Step 1: Create Directed Edge Colored Graph (DECGraph)
         self._dec_graph = self._create_directed_edge_colored_graph(state, index_mapper)
@@ -87,6 +98,104 @@ class StateGraph:
             index_mapper.add("p_" + pred.name + "_g")
             index_mapper.add("not p_" + pred.name + "_g")
         return index_mapper
+
+    def _create_undirected_vertex_colored_graph_2(self, state : State, index_mapper : NameToIndexMapper):
+        problem = state.get_problem()
+        graph = UVCGraph(state)
+        add_vertex_id = index_mapper.size()
+
+        # Add vertices
+        for obj in problem.objects:
+            v = DECVertex(
+                id=index_mapper.str_to_int("o_" + obj.name),
+                color=Color(
+                    value=index_mapper.str_to_int("t_" + obj.type.name),
+                    info=obj.type.name))
+            graph.add_vertex(v)
+
+        # Add atom edges
+        for atom in state.get_atoms():
+            v_pos_prev = None
+            for pos, obj in enumerate(atom.terms):
+                v_object_id = index_mapper.str_to_int("o_" + obj.name)
+
+                # Add predicate node
+                v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name), "p_" + atom.predicate.name))
+                v_helper_prev = v_pos
+                graph.add_vertex(v_helper_prev)
+                add_vertex_id += 1
+
+                # Connect predicate node to object node
+                graph.add_edge(v_object_id, v_helper_prev.id)
+                graph.add_edge(v_helper_prev.id, v_object_id)
+
+                for _ in range(pos - 1):
+
+                    # Add pos many uncolored helper nodes
+                    v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int(None)))
+                    graph.add_vertex(v_helper)
+                    add_vertex_id += 1
+
+                    if v_helper_prev is not None:
+                        # Connect current helper to previous helper
+                        graph.add_edge(v_helper_prev.id, v_helper.id)
+                        graph.add_edge(v_helper.id, v_helper_prev.id)
+                    v_helper_prev = v_helper
+
+                if (v_pos_prev is not None):
+                    # connect with previous positional node
+                    graph.add_edge(v_pos_prev.id, v_pos.id)
+                    graph.add_edge(v_pos.id, v_pos_prev.id)
+                v_pos_prev = v_pos
+
+        for goal_literal in problem.goal:
+            atom = goal_literal.atom
+            negated = goal_literal.negated
+
+            v_pos_prev = None
+            for pos, obj in enumerate(atom.terms):
+                v_object_id = index_mapper.str_to_int("o_" + obj.name)
+
+                # Add predicate node
+                if negated:
+                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g"), "not p_" + atom.predicate.name + "_g"))
+                else:
+                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g"), "p_" + atom.predicate.name + "_g"))
+                v_helper_prev = v_pos
+                graph.add_vertex(v_helper_prev)
+                add_vertex_id += 1
+
+                # Connect predicate node to object node
+                graph.add_edge(v_object_id, v_helper_prev.id)
+                graph.add_edge(v_helper_prev.id, v_object_id)
+
+                for _ in range(pos - 1):
+
+                    # Add pos many uncolored helper nodes
+                    v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int(None)))
+                    graph.add_vertex(v_helper)
+                    add_vertex_id += 1
+
+                    if v_helper_prev is not None:
+                        # Connect current helper to previous helper
+                        graph.add_edge(v_helper_prev.id, v_helper.id)
+                        graph.add_edge(v_helper.id, v_helper_prev.id)
+                    v_helper_prev = v_helper
+
+                if (v_pos_prev is not None):
+                    # connect with previous positional node
+                    graph.add_edge(v_pos_prev.id, v_pos.id)
+                    graph.add_edge(v_pos.id, v_pos_prev.id)
+                v_pos_prev = v_pos
+
+        # Add constant edges
+        for const in problem.domain.constants:
+            v_object_id = index_mapper.str_to_int("o_" + const.name)
+            v = UVCVertex(add_vertex_id, Color(index_mapper(index_mapper.str_to_int("c_" + const.name))))
+            add_vertex_id += 1
+            graph.add_edge(v_object_id, v)
+            graph.add_edge(v, v_object_id)
+        return graph
 
     def _create_directed_edge_colored_graph(self, state : State, index_mapper : NameToIndexMapper):
         problem = state.get_problem()
