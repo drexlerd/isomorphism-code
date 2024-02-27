@@ -91,21 +91,15 @@ class StateGraph:
                 graph.add_edge(v_object_id, v_pos.id)
                 graph.add_edge(v_pos.id, v_object_id)
 
-                v_helper_prev = v_pos
-                #if atom.predicate.arity == 1:
-                #    pos += 1
                 for _ in range(pos):
-
-                    # Add pos many uncolored helper nodes
+                    # Add pos-1 many uncolored helper nodes
                     v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name), "p_" + atom.predicate.name))
                     graph.add_vertex(v_helper)
                     add_vertex_id += 1
 
-                    if v_helper_prev is not None:
-                        # Connect current helper to previous helper
-                        graph.add_edge(v_helper_prev.id, v_helper.id)
-                        graph.add_edge(v_helper.id, v_helper_prev.id)
-                    v_helper_prev = v_helper
+                    # Connect current helper to previous helper
+                    graph.add_edge(v_pos.id, v_helper.id)
+                    graph.add_edge(v_helper.id, v_pos.id)
 
                 if (v_pos_prev is not None):
                     # connect with previous positional node
@@ -133,10 +127,8 @@ class StateGraph:
                 graph.add_edge(v_object_id, v_pos.id)
                 graph.add_edge(v_pos.id, v_object_id)
 
-                v_helper_prev = v_pos
                 for _ in range(pos):
-
-                    # Add pos many uncolored helper nodes
+                    # Add pos-1 many uncolored helper nodes
                     if negated:
                         v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g"), "not p_" + atom.predicate.name + "_g"))
                     else:
@@ -144,11 +136,9 @@ class StateGraph:
                     graph.add_vertex(v_helper)
                     add_vertex_id += 1
 
-                    if v_helper_prev is not None:
-                        # Connect current helper to previous helper
-                        graph.add_edge(v_helper_prev.id, v_helper.id)
-                        graph.add_edge(v_helper.id, v_helper_prev.id)
-                    v_helper_prev = v_helper
+                    # Connect current helper to previous helper
+                    graph.add_edge(v_pos.id, v_helper.id)
+                    graph.add_edge(v_helper.id, v_pos.id)
 
                 if v_pos_prev is not None:
                     # connect with previous positional node
