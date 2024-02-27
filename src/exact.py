@@ -1,6 +1,8 @@
 import sys
 import time
 
+import concurrent.futures
+
 from pathlib import Path
 from collections import defaultdict, deque
 
@@ -24,12 +26,13 @@ from .search_node import SearchNode
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, dump_equivalence_graph: bool, num_threads: int):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
         self._enable_pruning = enable_pruning
         self._dump_equivalence_graph = dump_equivalence_graph
+        self._num_threads = num_threads
         self._logger = initialize_logger("exact")
         self._logger.setLevel(verbosity)
         add_console_handler(self._logger)

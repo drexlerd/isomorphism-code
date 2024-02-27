@@ -5,8 +5,6 @@ from typing import List, MutableSet
 from collections import defaultdict
 
 from .color import Color
-from .dec_graph import DECVertex, DECEdge, DECGraph
-from .dvc_graph import DVCVertex, DVCEdge, DVCGraph
 from .uvc_graph import UVCVertex, UVCGraph
 
 
@@ -37,12 +35,9 @@ class StateGraph:
     """
     def __init__(self, state : State):
         self._state = state
-        # Bookkeeping: create mappings from names to integers
-        index_mapper = self._create_index_mapper(state)
 
-        self._uvc_graph = self._create_undirected_vertex_colored_graph(state, index_mapper)
-        assert self._uvc_graph.test_is_undirected()
-        self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph, index_mapper)
+        self._uvc_graph = self._create_undirected_vertex_colored_graph(state)
+        self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
 
 
@@ -57,19 +52,24 @@ class StateGraph:
         for const in problem.domain.constants:
             index_mapper.add("c_" + const.name)
         for pred in problem.domain.predicates:
-            index_mapper.add("p_" + pred.name)
-            index_mapper.add("p_" + pred.name + "_g")
-            index_mapper.add("not p_" + pred.name + "_g")
+            for i in range(pred.arity):
+                index_mapper.add("p_" + pred.name + f":{i}")
+            for i in range(pred.arity):
+                index_mapper.add("p_" + pred.name + "_g" + f":{i}")
+            for i in range(pred.arity):
+                index_mapper.add("not p_" + pred.name + "_g" + f":{i}")
         return index_mapper
 
-    def _create_undirected_vertex_colored_graph(self, state : State, index_mapper : NameToIndexMapper):
+    def _create_undirected_vertex_colored_graph(self, state : State):
         problem = state.get_problem()
         graph = UVCGraph(state)
+
+        index_mapper = self._create_index_mapper(state)
         add_vertex_id = index_mapper.size()
 
         # Add vertices
         for obj in problem.objects:
-            v = DECVertex(
+            v = UVCVertex(
                 id=index_mapper.str_to_int("o_" + obj.name),
                 color=Color(
                     value=index_mapper.str_to_int("t_" + obj.type.name),
@@ -83,7 +83,7 @@ class StateGraph:
                 v_object_id = index_mapper.str_to_int("o_" + obj.name)
 
                 # Add predicate node
-                v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name), "p_" + atom.predicate.name))
+                v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + f":{pos}"), "p_" + atom.predicate.name + f":{pos}"))
                 graph.add_vertex(v_pos)
                 add_vertex_id += 1
 
@@ -91,22 +91,13 @@ class StateGraph:
                 graph.add_edge(v_object_id, v_pos.id)
                 graph.add_edge(v_pos.id, v_object_id)
 
-                for _ in range(pos):
-                    # Add pos-1 many uncolored helper nodes
-                    v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name), "p_" + atom.predicate.name))
-                    graph.add_vertex(v_helper)
-                    add_vertex_id += 1
-
-                    # Connect current helper to previous helper
-                    graph.add_edge(v_pos.id, v_helper.id)
-                    graph.add_edge(v_helper.id, v_pos.id)
-
                 if (v_pos_prev is not None):
                     # connect with previous positional node
                     graph.add_edge(v_pos_prev.id, v_pos.id)
                     graph.add_edge(v_pos.id, v_pos_prev.id)
                 v_pos_prev = v_pos
 
+        # Add goal literals
         for goal_literal in problem.goal:
             atom = goal_literal.atom
             negated = goal_literal.negated
@@ -117,28 +108,15 @@ class StateGraph:
 
                 # Add predicate node
                 if negated:
-                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g"), "not p_" + atom.predicate.name + "_g"))
+                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g" + f":{pos}"), "not p_" + atom.predicate.name + "_g" + f":{pos}"))
                 else:
-                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g"), "p_" + atom.predicate.name + "_g"))
+                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g" + f":{pos}"), "p_" + atom.predicate.name + "_g" + f":{pos}"))
                 graph.add_vertex(v_pos)
                 add_vertex_id += 1
 
                 # Connect predicate node to object node
                 graph.add_edge(v_object_id, v_pos.id)
                 graph.add_edge(v_pos.id, v_object_id)
-
-                for _ in range(pos):
-                    # Add pos-1 many uncolored helper nodes
-                    if negated:
-                        v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g"), "not p_" + atom.predicate.name + "_g"))
-                    else:
-                        v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g"), "p_" + atom.predicate.name + "_g"))
-                    graph.add_vertex(v_helper)
-                    add_vertex_id += 1
-
-                    # Connect current helper to previous helper
-                    graph.add_edge(v_pos.id, v_helper.id)
-                    graph.add_edge(v_helper.id, v_pos.id)
 
                 if v_pos_prev is not None:
                     # connect with previous positional node
@@ -154,9 +132,11 @@ class StateGraph:
             add_vertex_id += 1
             graph.add_edge(v_object_id, v.id)
             graph.add_edge(v.id, v_object_id)
+
+        assert graph.test_is_undirected()
         return graph
 
-    def _create_pynauty_undirected_vertex_colored_graph(self, uvc_graph: UVCGraph, index_mapper : NameToIndexMapper):
+    def _create_pynauty_undirected_vertex_colored_graph(self, uvc_graph: UVCGraph):
         # remap vertex indices
         old_to_new_vertex_index = dict()
         for vertex in uvc_graph.vertices.values():
