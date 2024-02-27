@@ -1,13 +1,10 @@
 import sys
 import time
 
-import concurrent.futures
-
 from pathlib import Path
 from collections import defaultdict, deque
 
-from pymimir import DomainParser, ProblemParser, StateSpace, LiftedSuccessorGenerator, GroundedSuccessorGenerator
-from tqdm import tqdm
+from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator
 
 from .state_graph import StateGraph
 from .equivalence_graph import EquivalenceGraph as XEquivalenceGraph, \
@@ -75,14 +72,14 @@ class Driver:
                 print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.3f} seconds", end="")
                 sys.stdout.flush()
 
-            key = (state_graph.nauty_certificate, state_graph.uvc_graph.get_colors())
-            if self._enable_pruning and key in equivalence_class_to_index:
+            equivalence_class_key = (state_graph.nauty_certificate, state_graph.uvc_graph.get_colors())
+            if self._enable_pruning and equivalence_class_key in equivalence_class_to_index:
                 # Prune if represenative already exists
                 continue
 
-            if key not in equivalence_class_to_index:
-                equivalence_class_to_index[key] = len(equivalence_class_to_index)
-            class_index = equivalence_class_to_index[key]
+            if equivalence_class_key not in equivalence_class_to_index:
+                equivalence_class_to_index[equivalence_class_key] = len(equivalence_class_to_index)
+            class_index = equivalence_class_to_index[equivalence_class_key]
             class_index_to_states[class_index].add(state_graph.state)
 
             if self._dump_dot:
