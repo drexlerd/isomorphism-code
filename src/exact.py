@@ -74,7 +74,7 @@ class Driver:
             # Prune if represenative already exists
             if self._enable_pruning and state_graph.nauty_certificate in equivalence_classes:
                 continue
-            equivalence_classes[state_graph.nauty_certificate].add(state_graph)
+            equivalence_classes[(state_graph.nauty_certificate, state_graph.uvc_graph.get_colors())].add(state_graph)
 
             for applicable_action in successor_generator.get_applicable_actions(cur_state):
                 suc_state = applicable_action.apply(cur_state)
@@ -100,10 +100,11 @@ class Driver:
 
         if self._dump_dot:
             print("Dumping dot files to \"outputs/\"")
-            for class_id, state_graphs in enumerate(tqdm(equivalence_classes.values(), file=sys.stdout)):
+            # for class_id, state_graphs in enumerate(tqdm(equivalence_classes.values(), file=sys.stdout)):
+            for class_id, state_graphs in enumerate(equivalence_classes.values()):
                 for i, state_graph in enumerate(state_graphs):
                     state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")
-                    #print(state_graph.state.get_atoms())
+                    #print(state_graph.state.get_fluent_atoms())
                 #print()
 
         if self._dump_equivalence_graph:

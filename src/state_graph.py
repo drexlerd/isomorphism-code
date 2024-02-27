@@ -42,8 +42,9 @@ class StateGraph:
 
         self._uvc_graph = self._create_undirected_vertex_colored_graph(state, index_mapper)
         assert self._uvc_graph.test_is_undirected()
-        self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
+        self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph, index_mapper)
         self._nauty_certificate = nauty_certificate(self._nauty_graph)
+
 
     def _create_index_mapper(self, state: State):
         problem = state.get_problem()
@@ -91,7 +92,9 @@ class StateGraph:
                 graph.add_edge(v_pos.id, v_object_id)
 
                 v_helper_prev = v_pos
-                for _ in range(pos + 1):
+                #if atom.predicate.arity == 1:
+                #    pos += 1
+                for _ in range(pos):
 
                     # Add pos many uncolored helper nodes
                     v_helper = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name), "p_" + atom.predicate.name))
@@ -131,7 +134,7 @@ class StateGraph:
                 graph.add_edge(v_pos.id, v_object_id)
 
                 v_helper_prev = v_pos
-                for _ in range(pos + 1):
+                for _ in range(pos):
 
                     # Add pos many uncolored helper nodes
                     if negated:
@@ -163,26 +166,26 @@ class StateGraph:
             graph.add_edge(v.id, v_object_id)
         return graph
 
-    def _create_pynauty_undirected_vertex_colored_graph(self, dvc_graph: UVCGraph):
+    def _create_pynauty_undirected_vertex_colored_graph(self, uvc_graph: UVCGraph, index_mapper : NameToIndexMapper):
         # remap vertex indices
         old_to_new_vertex_index = dict()
-        for vertex in dvc_graph.vertices.values():
+        for vertex in uvc_graph.vertices.values():
             old_to_new_vertex_index[vertex.id] = len(old_to_new_vertex_index)
         adjacency_dict = defaultdict(set)
-        for source_id, target_ids in dvc_graph.adj_list.items():
+        for source_id, target_ids in uvc_graph.adj_list.items():
             adjacency_dict[old_to_new_vertex_index[source_id]] = set(old_to_new_vertex_index[target_id] for target_id in target_ids)
         # compute vertex partitioning
         color_to_vertices = defaultdict(set)
-        for vertex in dvc_graph.vertices.values():
+        for vertex in uvc_graph.vertices.values():
             color_to_vertices[vertex.color.value].add(old_to_new_vertex_index[vertex.id])
         color_to_vertices = dict(sorted(color_to_vertices.items()))
-        vertex_partitioning = list(color_to_vertices.values())
+        vertex_coloring = list(color_to_vertices.values())
 
         graph = NautyGraph(
             number_of_vertices=len(old_to_new_vertex_index),
             directed=False,
             adjacency_dict=adjacency_dict,
-            vertex_coloring=vertex_partitioning)
+            vertex_coloring=vertex_coloring)
         return graph
 
 
