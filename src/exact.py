@@ -45,7 +45,8 @@ class Driver:
         print()
 
         num_generated_states = 0
-        equivalence_classes = defaultdict(set)
+        equivalence_class_to_index = dict()
+        class_index_to_states = defaultdict(set)
 
         domain_parser = DomainParser(str(self._domain_file_path))
         domain = domain_parser.parse()
@@ -74,15 +75,23 @@ class Driver:
                 print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.3f} seconds", end="")
                 sys.stdout.flush()
 
-            # Prune if represenative already exists
-            if self._enable_pruning and state_graph.nauty_certificate in equivalence_classes:
+            key = (state_graph.nauty_certificate, state_graph.uvc_graph.get_colors())
+            if self._enable_pruning and key in equivalence_class_to_index:
+                # Prune if represenative already exists
                 continue
-            equivalence_classes[(state_graph.nauty_certificate, state_graph.uvc_graph.get_colors())].add(state_graph)
+
+            if key not in equivalence_class_to_index:
+                equivalence_class_to_index[key] = len(equivalence_class_to_index)
+            class_index = equivalence_class_to_index[key]
+            class_index_to_states[class_index].add(state_graph.state)
+
+            if self._dump_dot:
+                state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_index}/{num_generated_states}.gc")
 
             for applicable_action in successor_generator.get_applicable_actions(cur_state):
                 suc_state = applicable_action.apply(cur_state)
-                # Prune if state already in closed list
                 if suc_state in closed_list:
+                    # Prune if state already in closed list
                     continue
                 closed_list.add(suc_state)
                 search_nodes[suc_state] = SearchNode(cur_state, applicable_action)
@@ -97,18 +106,8 @@ class Driver:
         self._logger.info("Finished generating Aut(G)")
         print(f"Total time: {runtime:.2f} seconds")
         print("Number of generated states:", num_generated_states)
-        print("Number of equivalence classes:", len(equivalence_classes))
-        print("Number of vertices in UVC graph:", max(max(len(state_graph.uvc_graph.vertices) for state_graph in state_graphs) for state_graphs in equivalence_classes.values()))
+        print("Number of equivalence classes:", len(equivalence_class_to_index))
         print()
-
-        if self._dump_dot:
-            print("Dumping dot files to \"outputs/\"")
-            # for class_id, state_graphs in enumerate(tqdm(equivalence_classes.values(), file=sys.stdout)):
-            for class_id, state_graphs in enumerate(equivalence_classes.values()):
-                for i, state_graph in enumerate(state_graphs):
-                    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_id}/{i}.gc")
-                    #print(state_graph.state.get_fluent_atoms())
-                #print()
 
         if self._dump_equivalence_graph:
             constant_map = {const : XConstant(const.name) for const in domain.constants}
@@ -119,14 +118,14 @@ class Driver:
             goal_literal_map = {literal: XLiteral(XAtom(predicate_map[literal.atom.predicate], [object_map[obj] for obj in literal.atom.terms]), literal.negated) for literal in problem.goal}
             state_map = {state: index for index, state in enumerate(closed_list)}
             states = {
-                state_map[state_graph.state]: XState(
-                    state_map[state_graph.state],
-                    [encountered_atom_map[atom] for atom in state_graph.state.get_static_atoms()],
-                    [encountered_atom_map[atom] for atom in state_graph.state.get_fluent_atoms()],
+                state_map[state]: XState(
+                    state_map[state],
+                    [encountered_atom_map[atom] for atom in state.get_static_atoms()],
+                    [encountered_atom_map[atom] for atom in state.get_fluent_atoms()],
                     class_id
                 )
-                for class_id, state_graphs in enumerate(equivalence_classes.values())
-                for state_graph in state_graphs
+                for class_id, states in enumerate(class_index_to_states.values())
+                for state in states
             }
             transitions = defaultdict(list)
             for target_id, state in enumerate(closed_list):
@@ -137,4 +136,4 @@ class Driver:
             problem = XProblem(list(encountered_atom_map.values()), list(goal_literal_map.values()))
             graph = XEquivalenceGraph(domain, problem, states, transitions)
             graph.write(Path("equivalence_graph.json").absolute())
-            # graph.read(Path("equivalence_graph.json").absolute())
+            graph.read(Path("equivalence_graph.json").absolute())
