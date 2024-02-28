@@ -29,23 +29,22 @@ def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:
         # change working directory to put planner output files in correct directory
         os.chdir(instance_information.workspace)
         print(instance_information.workspace)
-        # result = generate_state_space(str(config.domain_filename), str(instance_information.filename), vocabulary_info, len(instance_datas), config.max_time_per_instance)
         print(instance_information.filename)
 
         equivalence_graph = read_equivalence_graph(instance_information.filename)
-        print(equivalence_graph)
 
         if vocabulary_info is None:
             # We obtain the parsed vocabulary from the first instance
             vocabulary_info = VocabularyInfo()
             for const in equivalence_graph.domain.constants:
                 vocabulary_info.add_constant(const.name)
-            static_predicate_names = set(pred.name for pred in equivalence_graph.domain.predicates)
+            static_predicate_names = set(pred.name for pred in equivalence_graph.domain.static_predicates)
             for pred in equivalence_graph.domain.predicates:
                 if pred.name in static_predicate_names:
                     vocabulary_info.add_predicate(pred.name, pred.arity, True)
                 else:
                     vocabulary_info.add_predicate(pred.name, pred.arity, False)
+                    vocabulary_info.add_predicate(pred.name + "_g", pred.arity, False)
 
             domain_data = compute_domain_data(vocabulary_info)
 
@@ -56,6 +55,9 @@ def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:
         atom_to_dlplan_atom = dict()
         for atom in set(equivalence_graph.problem.encountered_atoms).difference(set(equivalence_graph.problem.static_atoms)):
             atom_to_dlplan_atom[atom] = instance_info.add_atom(atom.predicate.name, [obj.name for obj in atom.objects])
+        for literal in equivalence_graph.problem.goal_literals:
+            assert not literal.is_negated
+            instance_info.add_static_atom(literal.atom.predicate.name + "_g", [obj.name for obj in literal.atom.objects])
 
         states = dict()
         for state_id, state in equivalence_graph.states.items():
@@ -67,9 +69,6 @@ def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:
             for transition in transitions:
                 forward_successors[source_id].add(transition.target_index)
         state_space = StateSpace(instance_info, states, 0, forward_successors, goal_states)
-
-        print(state_space.to_dot(1))
-
 
         if len(state_space.get_states()) > config.max_states_per_instance:
             continue
