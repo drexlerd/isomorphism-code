@@ -1,0 +1,3875 @@
+{
+    "domain": {
+        "constants": [],
+        "predicates": [
+            {
+                "name": "at",
+                "arity": 2
+            },
+            {
+                "name": "at-robby",
+                "arity": 1
+            },
+            {
+                "name": "ball",
+                "arity": 1
+            },
+            {
+                "name": "carry",
+                "arity": 2
+            },
+            {
+                "name": "free",
+                "arity": 1
+            },
+            {
+                "name": "gripper",
+                "arity": 1
+            },
+            {
+                "name": "room",
+                "arity": 1
+            }
+        ],
+        "static_predicates": [
+            {
+                "name": "ball",
+                "arity": 1
+            },
+            {
+                "name": "gripper",
+                "arity": 1
+            },
+            {
+                "name": "room",
+                "arity": 1
+            }
+        ]
+    },
+    "problem": {
+        "encountered_atoms": [
+            {
+                "predicate": {
+                    "name": "at",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball1"
+                    },
+                    {
+                        "name": "rooma"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "room",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "rooma"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "ball",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "ball1"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "carry",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball3"
+                    },
+                    {
+                        "name": "left"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball3"
+                    },
+                    {
+                        "name": "rooma"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "carry",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball3"
+                    },
+                    {
+                        "name": "right"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at-robby",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "roomb"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "ball",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "ball2"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "carry",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball1"
+                    },
+                    {
+                        "name": "right"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "ball",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "ball3"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at-robby",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "rooma"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "carry",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball2"
+                    },
+                    {
+                        "name": "left"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "carry",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball1"
+                    },
+                    {
+                        "name": "left"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "free",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "left"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball3"
+                    },
+                    {
+                        "name": "roomb"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "gripper",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "left"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball2"
+                    },
+                    {
+                        "name": "roomb"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "room",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "roomb"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "free",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "right"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball2"
+                    },
+                    {
+                        "name": "rooma"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "carry",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball2"
+                    },
+                    {
+                        "name": "right"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "at",
+                    "arity": 2
+                },
+                "objects": [
+                    {
+                        "name": "ball1"
+                    },
+                    {
+                        "name": "roomb"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "gripper",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "right"
+                    }
+                ]
+            }
+        ],
+        "static_atoms": [
+            {
+                "predicate": {
+                    "name": "ball",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "ball2"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "ball",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "ball3"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "room",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "roomb"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "room",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "rooma"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "gripper",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "right"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "gripper",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "left"
+                    }
+                ]
+            },
+            {
+                "predicate": {
+                    "name": "ball",
+                    "arity": 1
+                },
+                "objects": [
+                    {
+                        "name": "ball1"
+                    }
+                ]
+            }
+        ],
+        "goal_literals": [
+            {
+                "atom": {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                "is_negated": false
+            },
+            {
+                "atom": {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                "is_negated": false
+            },
+            {
+                "atom": {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                "is_negated": false
+            }
+        ]
+    },
+    "states": {
+        "37": {
+            "index": 37,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 0
+        },
+        "11": {
+            "index": 11,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 1
+        },
+        "2": {
+            "index": 2,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 2
+        },
+        "8": {
+            "index": 8,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 3
+        },
+        "35": {
+            "index": 35,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 4
+        },
+        "25": {
+            "index": 25,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 5
+        },
+        "6": {
+            "index": 6,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 6
+        },
+        "18": {
+            "index": 18,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 7
+        },
+        "13": {
+            "index": 13,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 8
+        },
+        "24": {
+            "index": 24,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 9
+        },
+        "0": {
+            "index": 0,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 10
+        },
+        "10": {
+            "index": 10,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 11
+        },
+        "34": {
+            "index": 34,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 12
+        },
+        "27": {
+            "index": 27,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 13
+        },
+        "36": {
+            "index": 36,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 14
+        },
+        "21": {
+            "index": 21,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "carry",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 15
+        },
+        "17": {
+            "index": 17,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 16
+        },
+        "31": {
+            "index": 31,
+            "static_atoms": [
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "room",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "gripper",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "ball",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        }
+                    ]
+                }
+            ],
+            "fluent_atoms": [
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "left"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "free",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "right"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at-robby",
+                        "arity": 1
+                    },
+                    "objects": [
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                },
+                {
+                    "predicate": {
+                        "name": "at",
+                        "arity": 2
+                    },
+                    "objects": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            ],
+            "equivalence_class_index": 17
+        }
+    },
+    "transitions": {
+        "13": [
+            {
+                "source_index": 13,
+                "target_index": 0,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "21": [
+            {
+                "source_index": 21,
+                "target_index": 1,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 21,
+                "target_index": 17,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "37": [
+            {
+                "source_index": 37,
+                "target_index": 2,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 37,
+                "target_index": 3,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 37,
+                "target_index": 5,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 37,
+                "target_index": 11,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 37,
+                "target_index": 15,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 37,
+                "target_index": 22,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 37,
+                "target_index": 32,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            }
+        ],
+        "18": [
+            {
+                "source_index": 18,
+                "target_index": 4,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 18,
+                "target_index": 9,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 18,
+                "target_index": 19,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 18,
+                "target_index": 24,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            }
+        ],
+        "35": [
+            {
+                "source_index": 35,
+                "target_index": 6,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            }
+        ],
+        "34": [
+            {
+                "source_index": 34,
+                "target_index": 7,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 34,
+                "target_index": 36,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            }
+        ],
+        "2": [
+            {
+                "source_index": 2,
+                "target_index": 8,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 2,
+                "target_index": 26,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 2,
+                "target_index": 35,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "24": [
+            {
+                "source_index": 24,
+                "target_index": 10,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 24,
+                "target_index": 14,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            }
+        ],
+        "17": [
+            {
+                "source_index": 17,
+                "target_index": 12,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 17,
+                "target_index": 16,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 17,
+                "target_index": 31,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 17,
+                "target_index": 33,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "6": [
+            {
+                "source_index": 6,
+                "target_index": 13,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 6,
+                "target_index": 28,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "25": [
+            {
+                "source_index": 25,
+                "target_index": 18,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 25,
+                "target_index": 20,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "27": [
+            {
+                "source_index": 27,
+                "target_index": 21,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball2"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 27,
+                "target_index": 30,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball3"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            }
+        ],
+        "36": [
+            {
+                "source_index": 36,
+                "target_index": 23,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            }
+        ],
+        "8": [
+            {
+                "source_index": 8,
+                "target_index": 25,
+                "action": {
+                    "name": "drop",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "left"
+                        }
+                    ]
+                }
+            }
+        ],
+        "10": [
+            {
+                "source_index": 10,
+                "target_index": 27,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "rooma"
+                        },
+                        {
+                            "name": "roomb"
+                        }
+                    ]
+                }
+            }
+        ],
+        "0": [
+            {
+                "source_index": 0,
+                "target_index": 29,
+                "action": {
+                    "name": "pick",
+                    "arguments": [
+                        {
+                            "name": "ball1"
+                        },
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "right"
+                        }
+                    ]
+                }
+            },
+            {
+                "source_index": 0,
+                "target_index": 34,
+                "action": {
+                    "name": "move",
+                    "arguments": [
+                        {
+                            "name": "roomb"
+                        },
+                        {
+                            "name": "rooma"
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
