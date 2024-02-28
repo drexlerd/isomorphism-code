@@ -1,7 +1,7 @@
 import json
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, MutableSet
 
 from dataclasses import dataclass, asdict, is_dataclass
 
@@ -14,6 +14,8 @@ def to_serializable(obj):
         return [to_serializable(item) for item in obj]
     elif isinstance(obj, dict):
         return {k: to_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, set):
+        return [to_serializable(v) for v in obj]
     else:
         return obj
 
@@ -29,6 +31,12 @@ class Object:
     def to_dict(self):
         return to_serializable({"name": self.name})
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other: "Object"):
+        return self.name == other.name
+
 
 @dataclass
 class Constant:
@@ -40,6 +48,15 @@ class Constant:
 
     def to_dict(self):
         return to_serializable({"name": self.name})
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other: "Constant"):
+        return self.name == other.name
+
+    def __lt__(self, other: "Constant"):
+        return str(self) < str(other)
 
 
 @dataclass
@@ -53,6 +70,15 @@ class Predicate:
 
     def to_dict(self):
         return to_serializable({"name": self.name, "arity": self.arity})
+
+    def __hash__(self):
+        return hash((self.name, self.arity))
+
+    def __eq__(self, other: "Predicate"):
+        return self.name == other.name and self.arity == other.arity
+
+    def __lt__(self, other: "Predicate"):
+        return str(self) < str(other)
 
 
 @dataclass
@@ -69,6 +95,15 @@ class Atom:
     def to_dict(self):
         return to_serializable({"predicate": self.predicate, "objects": self.objects})
 
+    def __hash__(self):
+        return hash((self.predicate, tuple(self.objects)))
+
+    def __eq__(self, other: "Atom"):
+        return self.predicate == other.predicate and self.objects == other.objects
+
+    def __lt__(self, other: "Atom"):
+        return str(self) < str(other)
+
 
 @dataclass
 class Literal:
@@ -83,6 +118,15 @@ class Literal:
 
     def to_dict(self):
         return to_serializable({"atom": self.atom, "is_negated": self.is_negated})
+
+    def __hash__(self):
+        return hash((self.atom, self.is_negated))
+
+    def __eq__(self, other: "Literal"):
+        return self.atom == other.atom and self.is_negated == other.is_negated
+
+    def __lt__(self, other: "Literal"):
+        return str(self) < str(other)
 
 
 @dataclass
@@ -101,6 +145,12 @@ class Domain:
     def to_dict(self):
         return to_serializable({"constants": self.constants, "predicates": self.predicates, "static_predicates": self.static_predicates})
 
+    def __hash__(self):
+        return hash((tuple(sorted(self.constants)), tuple(sorted(self.predicates)), tuple(sorted(self.static_predicates))))
+
+    def __eq__(self, other: "Domain"):
+        return sorted(self.constants) == sorted(other.constants) and sorted(self.predicates) == sorted(other.predicates) and sorted(self.static_predicates) == sorted(other.static_predicates)
+
 
 @dataclass
 class Problem:
@@ -117,6 +167,12 @@ class Problem:
 
     def to_dict(self):
         return to_serializable({"encountered_atoms": self.encountered_atoms, "static_atoms": self.static_atoms, "goal_literals": self.goal_literals})
+
+    def __hash__(self):
+        return hash((tuple(sorted(self.encountered_atoms)), tuple(sorted(self.static_atoms)), tuple(sorted(self.goal_literals))))
+
+    def __eq__(self, other: "Problem"):
+        return sorted(self.encountered_atoms) == sorted(other.encountered_atoms) and sorted(self.static_atoms) == sorted(other.static_atoms) and sorted(self.goal_literals) == sorted(other.goal_literals)
 
 
 @dataclass
@@ -137,6 +193,12 @@ class State:
     def to_dict(self):
         return to_serializable({"index": self.index, "static_atoms": self.static_atoms, "fluent_atoms": self.fluent_atoms, "equivalence_class_index": self.equivalence_class_index})
 
+    def __hash__(self):
+        return hash((self.index, tuple(sorted(self.static_atoms)), tuple(sorted(self.fluent_atoms)), self.equivalence_class_index))
+
+    def __eq__(self, other: "State"):
+        return self.index == other.index and sorted(self.static_atoms) == sorted(other.static_atoms) and sorted(self.fluent_atoms) == sorted(other.fluent_atoms) and sorted(self.equivalence_class_index) == sorted(other.equivalence_class_index)
+
 
 @dataclass
 class Action:
@@ -151,6 +213,13 @@ class Action:
 
     def to_dict(self):
         return to_serializable({"name": self.name, "arguments": self.arguments})
+
+    def __hash__(self):
+        return hash((self.name, tuple(self.arguments)))
+
+    def __eq__(self, other: "Action"):
+        return self.name == other.name and self.arguments == other.arguments
+
 
 
 @dataclass
@@ -169,13 +238,21 @@ class Transition:
     def to_dict(self):
         return to_serializable({"source_index": self.source_index, "target_index": self.target_index, "action": self.action})
 
+    def __hash__(self):
+        return hash((self.source_index, self.target_index, self.action))
+
+    def __eq__(self, other: "Transition"):
+        return self.source_index == other.source_index and self.target_index == other.target_index and self.action == other.action
+
+
 
 class EquivalenceGraph:
-    def __init__(self, domain: Domain, problem: Problem, states: Dict[int, State], transitions: Dict[int, List[Transition]]):
+    def __init__(self, domain: Domain, problem: Problem, states: Dict[int, State], transitions: Dict[int, List[Transition]], goal_states: MutableSet[int]):
         self.domain = domain
         self.problem = problem
         self.states = states
         self.transitions = transitions
+        self.goal_states = goal_states
 
     @classmethod
     def from_dict(cls, data):
@@ -183,14 +260,16 @@ class EquivalenceGraph:
         problem = Problem.from_dict(data["problem"])
         states = {int(k): State.from_dict(v) for k, v in data["states"].items()}
         transitions = {int(k): [Transition.from_dict(t) for t in v] for k, v in data["transitions"].items()}
-        return cls(domain, problem, states, transitions)
+        goal_states = set(int(v) for v in data["goal_states"])
+        return cls(domain, problem, states, transitions, goal_states)
 
     def to_dict(self):
         return to_serializable({
             "domain": self.domain,
             "problem": self.problem,
             "states": self.states,
-            "transitions": self.transitions
+            "transitions": self.transitions,
+            "goal_states": self.goal_states
         })
 
 

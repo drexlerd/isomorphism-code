@@ -267,6 +267,7 @@ class ASPFactory:
             if last_model is not None:
                 assert last_model.optimality_proven
                 return last_model.symbols(shown=True), ClingoExitCode.SATISFIABLE
+            print("Last model is None.")
             result = handle.get()
             if result.exhausted:
                 return None, ClingoExitCode.EXHAUSTED

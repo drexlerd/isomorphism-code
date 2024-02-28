@@ -3,8 +3,9 @@ import time
 
 from pathlib import Path
 from collections import defaultdict, deque
+from typing import Dict
 
-from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator
+from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator, State
 
 from .state_graph import StateGraph
 from .equivalence_graph import EquivalenceGraph as XEquivalenceGraph, \
@@ -20,7 +21,7 @@ from .equivalence_graph import EquivalenceGraph as XEquivalenceGraph, \
     Transition as XTransition, \
     write_equivalence_graph, read_equivalence_graph
 from .logger import initialize_logger, add_console_handler
-from .search_node import SearchNode
+from .search_node import SearchNode, CreatingInfo
 
 
 class Driver:
@@ -59,8 +60,8 @@ class Driver:
         queue.append(initial_state)
         closed_list = set()
         closed_list.add(initial_state)
-        search_nodes = dict()
-        search_nodes[initial_state] = SearchNode(None, None)
+        search_nodes : Dict[State, SearchNode] = dict()
+        search_nodes[initial_state] = SearchNode(creating_infos=[])
         num_generated_states += 1
 
         while queue:
@@ -88,11 +89,13 @@ class Driver:
 
             for applicable_action in successor_generator.get_applicable_actions(cur_state):
                 suc_state = applicable_action.apply(cur_state)
+
                 if suc_state in closed_list:
                     # Prune if state already in closed list
+                    search_nodes[suc_state].creating_infos.append(CreatingInfo(cur_state, applicable_action))
                     continue
                 closed_list.add(suc_state)
-                search_nodes[suc_state] = SearchNode(cur_state, applicable_action)
+                search_nodes[suc_state] = SearchNode(creating_infos=[CreatingInfo(cur_state, applicable_action)])
 
                 num_generated_states += 1
 
@@ -115,7 +118,12 @@ class Driver:
             encountered_atom_map = {atom: XAtom(predicate_map[atom.predicate], [object_map[obj] for obj in atom.terms]) for atom in problem.get_encountered_atoms()}
             static_atoms = {atom: XAtom(predicate_map[atom.predicate], [object_map[obj] for obj in atom.terms]) for atom in problem.get_static_atoms()}
             goal_literal_map = {literal: XLiteral(XAtom(predicate_map[literal.atom.predicate], [object_map[obj] for obj in literal.atom.terms]), literal.negated) for literal in problem.goal}
-            state_map = {state: index for index, state in enumerate(closed_list)}
+            state_id = 0
+            state_map = dict()
+            for equivalent_states in class_index_to_states.values():
+                for state in equivalent_states:
+                    state_map[state] = state_id
+                    state_id += 1
             states = {
                 state_map[state]: XState(
                     state_map[state],
@@ -123,16 +131,19 @@ class Driver:
                     [encountered_atom_map[atom] for atom in state.get_fluent_atoms()],
                     class_id
                 )
-                for class_id, states in enumerate(class_index_to_states.values())
-                for state in states
+                for class_id, equivalent_states in enumerate(class_index_to_states.values())
+                for state in equivalent_states
             }
             transitions = defaultdict(list)
-            for target_id, state in enumerate(closed_list):
-                if search_nodes[state].parent_state is not None:
-                    source_id = state_map[search_nodes[state].parent_state]
-                    transitions[source_id].append(XTransition(source_id, target_id, XAction(search_nodes[state].creating_action.schema.name, [object_map[obj] for obj in search_nodes[state].creating_action.get_arguments()])))
+            for equivalent_states in class_index_to_states.values():
+                for state in equivalent_states:
+                    target_id = state_map[state]
+                    for creating_info in search_nodes[state].creating_infos:
+                        source_id = state_map[creating_info.parent_state]
+                        transitions[source_id].append(XTransition(source_id, target_id, XAction(creating_info.creating_action.schema.name, [object_map[obj] for obj in creating_info.creating_action.get_arguments()])))
+            goal_states = set(state_map[state] for state in closed_list if state.literals_hold(problem.goal))
             domain = XDomain(list(constant_map.values()), list(predicate_map.values()), list(static_predicate_map.values()))
             problem = XProblem(list(encountered_atom_map.values()), list(static_atoms.values()), list(goal_literal_map.values()))
-            graph = XEquivalenceGraph(domain, problem, states, transitions)
+            graph = XEquivalenceGraph(domain, problem, states, transitions, goal_states)
             write_equivalence_graph(graph, Path("equivalence_graph.json").absolute())
-            print(read_equivalence_graph(Path("equivalence_graph.json").absolute()).problem.static_atoms)
+            read_equivalence_graph(Path("equivalence_graph.json").absolute())

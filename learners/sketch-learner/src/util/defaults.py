@@ -35,7 +35,7 @@ def generate_experiment(instance_filenames: List[str], workspace: str, **kwargs)
 
         closed_Q=True,
 
-        width=2,
+        width=1,
 
         asp_name="sketch.lp",
 
@@ -70,6 +70,6 @@ def generate_experiment(instance_filenames: List[str], workspace: str, **kwargs)
     steps, config = generate_pipeline(**parameters)
 
     # The location of the asp problem file
-    config["asp_location"] = BASEDIR / "learner/src/asp/"
+    config["asp_location"] = BASEDIR / "sketch-learner/src/asp/"
 
     return Experiment(steps, parameters)

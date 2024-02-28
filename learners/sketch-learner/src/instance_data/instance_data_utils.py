@@ -2,7 +2,7 @@ import logging
 import os
 import math
 
-from dlplan.core import VocabularyInfo, InstanceInfo, DenotationsCaches
+from dlplan.core import VocabularyInfo, InstanceInfo, DenotationsCaches, State
 from dlplan.policy import Rule
 from dlplan.state_space import StateSpace
 
@@ -52,9 +52,23 @@ def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:
         assert(vocabulary_info is not None)
         instance_info = InstanceInfo(i, vocabulary_info)
         for static_atom in equivalence_graph.problem.static_atoms:
-            print(str(static_atom))
+            instance_info.add_static_atom(static_atom.predicate.name, [obj.name for obj in static_atom.objects])
+        atom_to_dlplan_atom = dict()
         for atom in set(equivalence_graph.problem.encountered_atoms).difference(set(equivalence_graph.problem.static_atoms)):
-            print(str(atom))
+            atom_to_dlplan_atom[atom] = instance_info.add_atom(atom.predicate.name, [obj.name for obj in atom.objects])
+
+        states = dict()
+        for state_id, state in equivalence_graph.states.items():
+            states[state_id] = State(state_id, instance_info, [atom_to_dlplan_atom[atom] for atom in state.fluent_atoms])
+        goal_states = equivalence_graph.goal_states
+
+        forward_successors = defaultdict(set)
+        for source_id, transitions in equivalence_graph.transitions.items():
+            for transition in transitions:
+                forward_successors[source_id].add(transition.target_index)
+        state_space = StateSpace(instance_info, states, 0, forward_successors, goal_states)
+
+        print(state_space.to_dot(1))
 
 
         if len(state_space.get_states()) > config.max_states_per_instance:
