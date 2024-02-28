@@ -6,8 +6,7 @@ from dlplan.policy import PolicyFactory
 from src.domain_data.domain_data import DomainData
 
 
-def compute_domain_data(domain_filename: str, vocabulary_info: VocabularyInfo) -> DomainData:
-    logging.info("Constructing DomainData for filename %s", domain_filename)
-    policy_builder = PolicyFactory()
+def compute_domain_data(vocabulary_info: VocabularyInfo) -> DomainData:
     syntactic_element_factory = SyntacticElementFactory(vocabulary_info)
-    return DomainData(domain_filename, vocabulary_info, policy_builder, syntactic_element_factory)
+    policy_builder = PolicyFactory(syntactic_element_factory)
+    return DomainData(vocabulary_info, policy_builder, syntactic_element_factory)

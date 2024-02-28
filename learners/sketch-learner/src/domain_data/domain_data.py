@@ -11,7 +11,6 @@ from src.iteration_data.feature_pool import FeaturePool
 @dataclass
 class DomainData:
     """ Store data related to a domain. """
-    domain_filename: str
     vocabulary_info: VocabularyInfo
     policy_builder: PolicyFactory
     syntactic_element_factory: SyntacticElementFactory

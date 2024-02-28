@@ -17,7 +17,8 @@ from .equivalence_graph import EquivalenceGraph as XEquivalenceGraph, \
     Problem as XProblem, \
     State as XState, \
     Action as XAction, \
-    Transition as XTransition
+    Transition as XTransition, \
+    write_equivalence_graph, read_equivalence_graph
 from .logger import initialize_logger, add_console_handler
 from .search_node import SearchNode
 
@@ -112,6 +113,7 @@ class Driver:
             predicate_map = {pred: XPredicate(pred.name, pred.arity) for pred in domain.predicates}
             static_predicate_map = {pred: XPredicate(pred.name, pred.arity) for pred in domain.static_predicates}
             encountered_atom_map = {atom: XAtom(predicate_map[atom.predicate], [object_map[obj] for obj in atom.terms]) for atom in problem.get_encountered_atoms()}
+            static_atoms = {atom: XAtom(predicate_map[atom.predicate], [object_map[obj] for obj in atom.terms]) for atom in problem.get_static_atoms()}
             goal_literal_map = {literal: XLiteral(XAtom(predicate_map[literal.atom.predicate], [object_map[obj] for obj in literal.atom.terms]), literal.negated) for literal in problem.goal}
             state_map = {state: index for index, state in enumerate(closed_list)}
             states = {
@@ -130,7 +132,7 @@ class Driver:
                     source_id = state_map[search_nodes[state].parent_state]
                     transitions[source_id].append(XTransition(source_id, target_id, XAction(search_nodes[state].creating_action.schema.name, [object_map[obj] for obj in search_nodes[state].creating_action.get_arguments()])))
             domain = XDomain(list(constant_map.values()), list(predicate_map.values()), list(static_predicate_map.values()))
-            problem = XProblem(list(encountered_atom_map.values()), list(goal_literal_map.values()))
+            problem = XProblem(list(encountered_atom_map.values()), list(static_atoms.values()), list(goal_literal_map.values()))
             graph = XEquivalenceGraph(domain, problem, states, transitions)
-            graph.write(Path("equivalence_graph.json").absolute())
-            graph.read(Path("equivalence_graph.json").absolute())
+            write_equivalence_graph(graph, Path("equivalence_graph.json").absolute())
+            print(read_equivalence_graph(Path("equivalence_graph.json").absolute()).problem.static_atoms)

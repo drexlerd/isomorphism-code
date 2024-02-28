@@ -2,20 +2,19 @@ import logging
 import os
 import math
 
+from dlplan.core import VocabularyInfo, InstanceInfo, DenotationsCaches
 from dlplan.policy import Rule
 from dlplan.state_space import StateSpace
 
 from collections import defaultdict
 from typing import  List, Dict, Tuple
 
-from dlplan.core import DenotationsCaches
-from dlplan.state_space import GeneratorExitCode, generate_state_space
-
 from src.domain_data.domain_data import DomainData
 from src.domain_data.domain_data_utils import compute_domain_data
 from src.instance_data.instance_data import InstanceData
 from src.instance_data.instance_information import InstanceInformation
 from src.instance_data.tuple_graph_utils import compute_tuple_graphs
+from src.instance_data.equivalence_graph import EquivalenceGraph, read_equivalence_graph
 from src.iteration_data.sketch import Sketch
 from src.util.command import create_experiment_workspace
 
@@ -24,20 +23,38 @@ def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:
     cwd = os.getcwd()
     vocabulary_info = None
     instance_datas = []
-    for instance_information in config.instance_informations:
+    for i, instance_information in enumerate(config.instance_informations):
         logging.info("Constructing InstanceData for filename %s", instance_information.filename)
         create_experiment_workspace(instance_information.workspace, False)
         # change working directory to put planner output files in correct directory
         os.chdir(instance_information.workspace)
         print(instance_information.workspace)
-        result = generate_state_space(str(config.domain_filename), str(instance_information.filename), vocabulary_info, len(instance_datas), config.max_time_per_instance)
-        if result.exit_code != GeneratorExitCode.COMPLETE:
-            continue
-        state_space = result.state_space
+        # result = generate_state_space(str(config.domain_filename), str(instance_information.filename), vocabulary_info, len(instance_datas), config.max_time_per_instance)
+        print(instance_information.filename)
+
+        equivalence_graph = read_equivalence_graph(instance_information.filename)
+        print(equivalence_graph)
+
         if vocabulary_info is None:
             # We obtain the parsed vocabulary from the first instance
-            vocabulary_info = state_space.get_instance_info().get_vocabulary_info()
-            domain_data = compute_domain_data(config.domain_filename, vocabulary_info)
+            vocabulary_info = VocabularyInfo()
+            for const in equivalence_graph.domain.constants:
+                vocabulary_info.add_constant(const.name)
+            static_predicate_names = set(pred.name for pred in equivalence_graph.domain.predicates)
+            for pred in equivalence_graph.domain.predicates:
+                if pred.name in static_predicate_names:
+                    vocabulary_info.add_predicate(pred.name, pred.arity, True)
+                else:
+                    vocabulary_info.add_predicate(pred.name, pred.arity, False)
+
+            domain_data = compute_domain_data(vocabulary_info)
+
+        assert(vocabulary_info is not None)
+        instance_info = InstanceInfo(i, vocabulary_info)
+        for static_atom in set(static_atom for state in equivalence_graph.states.values() for static_atom in state.static_atoms):
+            print(static_atom)
+
+
         if len(state_space.get_states()) > config.max_states_per_instance:
             continue
         goal_distances = state_space.compute_goal_distances()

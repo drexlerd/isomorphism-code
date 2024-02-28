@@ -325,6 +325,11 @@ PYBIND11_MODULE(pymimir, m)
     problem.def("replace_initial", &mimir::formalism::ProblemImpl::replace_initial, "initial"_a, "Gets a new object with the given initial atoms.");
     problem.def("create_state", [](const mimir::formalism::ProblemDescription& problem, const mimir::formalism::AtomList& atom_list) { return mimir::formalism::create_state(atom_list, problem); }, "Creates a new state given a list of atoms.");
     problem.def("get_encountered_atoms", &mimir::formalism::ProblemImpl::get_encountered_atoms, "Gets all atoms seen so far.");
+    problem.def("get_static_atoms", [](const mimir::formalism::ProblemImpl& problem)
+    {
+        const auto& static_atoms_set = problem.get_static_atoms();
+        return mimir::formalism::AtomList(static_atoms_set.begin(), static_atoms_set.end());
+    }, "Gets all static atoms.");
     problem.def("__repr__", [](const mimir::formalism::ProblemImpl& problem) { return "<Problem '" + problem.name + "'>"; });
 
     domain_parser.def(py::init(&create_domain_parser), "path"_a);
