@@ -29,6 +29,12 @@ class Object:
     def to_dict(self):
         return to_serializable({"name": self.name})
 
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other: "Object"):
+        return self.name == other.name
+
 
 @dataclass
 class Constant:
@@ -40,6 +46,12 @@ class Constant:
 
     def to_dict(self):
         return to_serializable({"name": self.name})
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other: "Constant"):
+        return self.name == other.name
 
 
 @dataclass
@@ -53,6 +65,12 @@ class Predicate:
 
     def to_dict(self):
         return to_serializable({"name": self.name, "arity": self.arity})
+
+    def __hash__(self):
+        return hash((self.name, self.arity))
+
+    def __eq__(self, other: "Predicate"):
+        return self.name == other.name and self.arity == other.arity
 
 
 @dataclass
@@ -69,6 +87,12 @@ class Atom:
     def to_dict(self):
         return to_serializable({"predicate": self.predicate, "objects": self.objects})
 
+    def __hash__(self):
+        return hash((self.predicate, tuple(self.objects)))
+
+    def __eq__(self, other: "Atom"):
+        return self.predicate == other.predicate and self.objects == other.objects
+
 
 @dataclass
 class Literal:
@@ -83,6 +107,12 @@ class Literal:
 
     def to_dict(self):
         return to_serializable({"atom": self.atom, "is_negated": self.is_negated})
+
+    def __hash__(self):
+        return hash((self.atom, self.is_negated))
+
+    def __eq__(self, other: "Literal"):
+        return self.atom == other.atom and self.is_negated == other.is_negated
 
 
 @dataclass
@@ -101,6 +131,12 @@ class Domain:
     def to_dict(self):
         return to_serializable({"constants": self.constants, "predicates": self.predicates, "static_predicates": self.static_predicates})
 
+    def __hash__(self):
+        return hash((tuple(sorted(self.constants)), tuple(sorted(self.predicates)), tuple(sorted(self.static_predicates))))
+
+    def __eq__(self, other: "Domain"):
+        return sorted(self.constants) == sorted(other.constants) and sorted(self.predicates) == sorted(other.predicates) and sorted(self.static_predicates) == sorted(other.static_predicates)
+
 
 @dataclass
 class Problem:
@@ -117,6 +153,12 @@ class Problem:
 
     def to_dict(self):
         return to_serializable({"encountered_atoms": self.encountered_atoms, "static_atoms": self.static_atoms, "goal_literals": self.goal_literals})
+
+    def __hash__(self):
+        return hash((tuple(sorted(self.encountered_atoms)), tuple(sorted(self.static_atoms)), tuple(sorted(self.goal_literals))))
+
+    def __eq__(self, other: "Problem"):
+        return sorted(self.encountered_atoms) == sorted(other.encountered_atoms) and sorted(self.static_atoms) == sorted(other.static_atoms) and sorted(self.goal_literals) == sorted(other.goal_literals)
 
 
 @dataclass
@@ -136,6 +178,12 @@ class State:
 
     def to_dict(self):
         return to_serializable({"index": self.index, "static_atoms": self.static_atoms, "fluent_atoms": self.fluent_atoms, "equivalence_class_index": self.equivalence_class_index})
+
+    def __hash__(self):
+        return hash((self.index, tuple(sorted(self.encountered_atoms)), tuple(sorted(self.static_atoms)), self.equivalence_class_index))
+
+    def __eq__(self, other: "State"):
+        return self.index == other.index and sorted(self.encountered_atoms) == sorted(other.encountered_atoms) and sorted(self.static_atoms) == sorted(other.static_atoms) and sorted(self.equivalence_class_index) == sorted(other.equivalence_class_index)
 
 
 @dataclass

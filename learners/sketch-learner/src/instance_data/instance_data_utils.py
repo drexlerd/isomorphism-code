@@ -51,8 +51,10 @@ def compute_instance_datas(config) -> Tuple[List[InstanceData], DomainData]:
 
         assert(vocabulary_info is not None)
         instance_info = InstanceInfo(i, vocabulary_info)
-        for static_atom in set(static_atom for state in equivalence_graph.states.values() for static_atom in state.static_atoms):
-            print(static_atom)
+        for static_atom in equivalence_graph.problem.static_atoms:
+            print(str(static_atom))
+        for atom in set(equivalence_graph.problem.encountered_atoms).difference(set(equivalence_graph.problem.static_atoms)):
+            print(str(atom))
 
 
         if len(state_space.get_states()) > config.max_states_per_instance:
