@@ -5,7 +5,6 @@ import sys
 
 from pathlib import Path
 
-from src.exact import Driver
 
 print(sys.executable)
 
@@ -45,12 +44,13 @@ if __name__ == "__main__":
     add_pddl_options(wl_parser)
     add_verbosity_option(wl_parser)
     add_dump_dot_option(wl_parser)
-    wl_parser.add_argument("-k", "--dimension", type=int, help="Dimension of Weisfeiler-Leman", required=True)
+    # wl_parser.add_argument("-k", "--dimension", type=int, help="Dimension of Weisfeiler-Leman", required=True)
 
     args = parser.parse_args()
 
     # Run the abstraction generator
     if args.type == "exact":
+        from src.exact import Driver
         driver = Driver(
             Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
@@ -59,6 +59,12 @@ if __name__ == "__main__":
             args.enable_pruning,
             args.dump_equivalence_graph,
             args.num_threads)
-        driver.run()
     elif args.type == "wl":
-        pass
+        from src.wl_analysis import Driver
+        driver = Driver(
+            Path(args.domain_file_path).absolute(),
+            Path(args.problem_file_path).absolute(),
+            args.verbosity)
+
+    # Run the configuration
+    driver.run()
