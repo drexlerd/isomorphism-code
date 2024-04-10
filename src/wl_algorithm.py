@@ -31,10 +31,10 @@ def weisfeiler_leman(graph: Graph) -> Tuple[int, np.ndarray]:
             ingoing_node_colors = current_coloring[ingoing_node_ids]
             outgoing_node_colors = current_coloring[outgoing_node_ids]
             # Sort the colors to make the color function invariant to the order. The edge colors are sorted according to the node colors.
-            ingoing_sort = np.argsort(ingoing_node_colors)
+            ingoing_sort = np.lexsort((ingoing_edge_colors, ingoing_node_colors))
             ingoing_edge_colors = ingoing_edge_colors[ingoing_sort]
             ingoing_node_colors = ingoing_node_colors[ingoing_sort]
-            outgoing_sort = np.argsort(outgoing_node_colors)
+            outgoing_sort = np.lexsort((outgoing_edge_colors, outgoing_node_colors))
             outgoing_edge_colors = outgoing_edge_colors[outgoing_sort]
             outgoing_node_colors = outgoing_node_colors[outgoing_sort]
             # Get and set the new color based on the current color and the color of adjacent nodes.
