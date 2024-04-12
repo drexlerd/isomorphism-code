@@ -43,9 +43,9 @@ class WeisfeilerLeman:
                 if color_key not in self._color_function: self._color_function[color_key] = len(self._color_function) + color_offset
                 next_coloring[node_id] = self._color_function[color_key]
 
-            # Check if we've reached a fixpoint
+            # Check if we've reached a fixpoint.
             coloring_difference = next_coloring[0] - current_coloring[0]
-            if (((current_coloring + coloring_difference) == next_coloring).all()): break
+            if ((current_coloring + coloring_difference) == next_coloring).all(): break
             else: current_coloring = next_coloring
 
         colors, counts = np.unique(current_coloring, return_counts=True)

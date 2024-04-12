@@ -134,3 +134,14 @@ class Driver:
         for state in state_space.get_states():
             add_to_class_dec_wl(dec_wl_equivalence_classes, wl, state)
         self._logger.info(f"# dec wl equivalence classes: {len(dec_wl_equivalence_classes)}")
+
+        # Sanity check that each method produces classes of the same size.
+        uvc_exact_histogram = [len(eq_class) for eq_class in uvc_exact_equivalence_classes.values()]
+        uvc_exact_histogram.sort()
+        uvc_wl_histogram = [len(eq_class) for eq_class in uvc_wl_equivalence_classes.values()]
+        uvc_wl_histogram.sort()
+        dec_wl_histogram = [len(eq_class) for eq_class in dec_wl_equivalence_classes.values()]
+        dec_wl_histogram.sort()
+        self._logger.info(f"uvc exact == uvc wl: {uvc_exact_histogram == uvc_wl_histogram}")
+        self._logger.info(f"uvc exact == dec wl: {uvc_exact_histogram == dec_wl_histogram}")
+        self._logger.info(f"uvc wl == dec wl: {uvc_wl_histogram == dec_wl_histogram}")
