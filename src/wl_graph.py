@@ -69,5 +69,13 @@ class Graph:
     def directed(self):
         return self._directed
 
+    def get_edges(self, src_vertex, dst_vertex):
+        edges = []
+        for edge_id in self._outgoing_edges[src_vertex]:
+            assert self.get_source(edge_id) == src_vertex
+            if self.get_destination(edge_id) == dst_vertex:
+                edges.append(edge_id)
+        return edges
+
     def undirected(self):
         return not self._directed
