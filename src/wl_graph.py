@@ -57,6 +57,9 @@ class Graph:
     def get_set_node_labels(self):
         return self._unique_node_labels
 
+    def get_node_label(self, vertex):
+        return self._node_labels[vertex]
+
     def get_node_labels(self):
         return self._node_labels
 
