@@ -1,7 +1,6 @@
 import numpy as np
 
 from .wl_graph import Graph
-from concurrent.futures import ProcessPoolExecutor
 from typing import Tuple
 
 
