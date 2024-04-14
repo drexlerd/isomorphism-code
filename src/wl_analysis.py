@@ -20,9 +20,9 @@ def add_to_class_uvc_wl(equivalence_classes: Dict[Any, Set], wl: WeisfeilerLeman
     uvc_edges = state_graph._uvc_graph._adj_list
     to_wl_vertex = {}
     wl_graph = WLGraph(False)
-    for [vertex_id, vertex_data] in uvc_vertices.items():
+    for vertex_id, vertex_data in uvc_vertices.items():
         to_wl_vertex[vertex_id] = wl_graph.add_node(vertex_data.color.value)
-    for [vertex_id, adjacent_ids] in uvc_edges.items():
+    for vertex_id, adjacent_ids in uvc_edges.items():
         for adjacent_id in adjacent_ids:
             wl_graph.add_edge(to_wl_vertex[vertex_id], to_wl_vertex[adjacent_id])
     # Compute histogram and add state to equivalence class
@@ -40,7 +40,7 @@ def add_to_class_dec_wl(equivalence_classes: Dict[Any, Set], wl: WeisfeilerLeman
     def add_labeled_edge(atom, offset):
         if atom.predicate.arity == 0:
             pass  # Add some information?
-            raise Exception("predicate arity is not 1 or 2")
+            # raise Exception("predicate arity is not 1 or 2")
         elif atom.predicate.arity == 1:
             vertex = to_wl_vertex[atom.terms[0]]
             wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
@@ -101,22 +101,31 @@ class Driver:
         wl = WeisfeilerLeman(1)
         uvc_exact_equivalence_classes = defaultdict(set)
         uvc_wl_equivalence_classes = defaultdict(set)
-        # uvc_wl_debug_equivalence_classes = defaultdict(set)
         self._logger.info("Generating equivalence classes...")
-        for state in tqdm(states):
-            state_graph = StateGraph(state)
-            add_to_class_uvc_exact(uvc_exact_equivalence_classes, state_graph, state)
-            add_to_class_uvc_wl(uvc_wl_equivalence_classes, wl, state_graph, state)
+        # for state in tqdm(states, mininterval=0.5):
+        #     state_graph = StateGraph(state)
+        #     add_to_class_uvc_exact(uvc_exact_equivalence_classes, state_graph, state)
+        #     # add_to_class_uvc_wl(uvc_wl_equivalence_classes, wl, state_graph, state)
         self._logger.info(f"# uvc exact equivalence classes: {len(uvc_exact_equivalence_classes)}")
         self._logger.info(f"# uvc wl equivalence classes: {len(uvc_wl_equivalence_classes)}")
-        # self._logger.info(f"# uvc wl debug equivalence classes: {len(uvc_wl_debug_equivalence_classes)}")
 
         # Generate equivalence classes according to the k-WL algorithm, on a directed and and edge labeled graph.
-        wl = WeisfeilerLeman(2)
-        dec_wl_equivalence_classes = defaultdict(set)
-        for state in tqdm(states):
-            add_to_class_dec_wl(dec_wl_equivalence_classes, wl, state)
-        self._logger.info(f"# dec wl equivalence classes: {len(dec_wl_equivalence_classes)}")
+
+        # wl = WeisfeilerLeman(2)
+        # dec_wl_equivalence_classes = defaultdict(set)
+        # for state in tqdm(states, mininterval=0.5):
+        #     add_to_class_dec_wl(dec_wl_equivalence_classes, wl, state)
+        # self._logger.info(f"# dec wl equivalence classes: {len(dec_wl_equivalence_classes)}")
+
+        from cProfile import Profile
+        from pstats import SortKey, Stats
+        with Profile() as profile:
+            wl = WeisfeilerLeman(2)
+            dec_wl_equivalence_classes = defaultdict(set)
+            for state in tqdm(states[:500], mininterval=0.5):
+                add_to_class_dec_wl(dec_wl_equivalence_classes, wl, state)
+            self._logger.info(f"# dec wl equivalence classes: {len(dec_wl_equivalence_classes)}")
+            Stats(profile).strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats(50)
 
         # Sanity check that each method produces classes of the same size.
         uvc_exact_histogram = [len(eq_class) for eq_class in uvc_exact_equivalence_classes.values()]

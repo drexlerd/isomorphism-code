@@ -1,6 +1,7 @@
 import numpy as np
 
 from .wl_graph import Graph
+from concurrent.futures import ProcessPoolExecutor
 from typing import Tuple
 
 
@@ -10,6 +11,7 @@ class WeisfeilerLeman:
         self._color_function = dict()
         self._k = k
 
+
     def _get_color(self, key):
                 if key not in self._color_function:
                     color = len(self._color_function)
@@ -17,6 +19,7 @@ class WeisfeilerLeman:
                     return color
                 else:
                     return self._color_function[key]
+
 
     def _singleton_coloring(self, graph: Graph):
         num_vertices = graph.get_num_nodes()
@@ -62,63 +65,77 @@ class WeisfeilerLeman:
         color_sort = np.lexsort((counts, colors))
         return num_iterations, tuple(colors[color_sort]), tuple(counts[color_sort])
 
+
+    def _pair_to_index(self, src_vertex, dst_vertex, num_vertices): return src_vertex * num_vertices + dst_vertex
+
+
+    def _pair_get_all_neighboring_indices(self, num_vertices):
+        src_vertices, dst_vertices = np.meshgrid(np.arange(num_vertices), np.arange(num_vertices), indexing='ij')
+        middle_vertices = np.arange(num_vertices)
+        middle_grid = np.tile(middle_vertices, (num_vertices * num_vertices, 1))
+        src_flat = np.repeat(src_vertices.ravel(), num_vertices)
+        dst_flat = np.repeat(dst_vertices.ravel(), num_vertices)
+        src_to_middle_indices = self._pair_to_index(src_flat, middle_grid.ravel(), num_vertices)
+        middle_to_dst_indices = self._pair_to_index(middle_grid.ravel(), dst_flat, num_vertices)
+        indices = np.stack((src_to_middle_indices, middle_to_dst_indices), axis=1)
+        indices = indices.reshape(num_vertices*num_vertices, num_vertices, 2)
+        return indices
+
+
+    def _pair_get_subgraph_color(self, src_vertex: int, dst_vertex: int, graph: Graph, vertex_colors: list, edge_colors: list):
+        # Get the colors of the vertices in the pair.
+        src_color = vertex_colors[src_vertex]
+        dst_color = vertex_colors[dst_vertex]
+
+        # Get IDs of the edges between src and dst, but also self loops.
+        forward_edge_ids = graph.get_edges(src_vertex, dst_vertex)
+        backward_edge_ids = graph.get_edges(dst_vertex, src_vertex)
+        src_self_edge_ids = graph.get_edges(src_vertex, src_vertex)
+        dst_self_edge_ids = graph.get_edges(dst_vertex, dst_vertex)
+
+        # Get the colors of the edges mentioned earlier.
+        forward_edge_colors = [edge_colors[forward_edge_id] for forward_edge_id in forward_edge_ids]
+        backward_edge_colors = [edge_colors[backward_edge_id] for backward_edge_id in backward_edge_ids]
+        src_self_edge_colors = [edge_colors[src_self_edge_id] for src_self_edge_id in src_self_edge_ids]
+        dst_self_edge_colors = [edge_colors[dst_self_edge_id] for dst_self_edge_id in dst_self_edge_ids]
+
+        # We need to treat the colors as a multiset.
+        forward_edge_colors.sort()
+        backward_edge_colors.sort()
+        src_self_edge_colors.sort()
+        dst_self_edge_colors.sort()
+
+        # Get the color of the pair.
+        subgraph_key = (src_color, dst_color, tuple(forward_edge_colors), tuple(backward_edge_colors), tuple(src_self_edge_colors), tuple(dst_self_edge_colors))
+        if subgraph_key not in self._color_function: self._color_function[subgraph_key] = len(self._color_function)
+        return self._color_function[subgraph_key]
+
+
     def _pair_coloring(self, graph: Graph):
-        # Make these available for helper functions
-        num_nodes = graph.get_num_nodes()
+        # Make these available for helper functions.
+        num_vertices = graph.get_num_nodes()
+        vertex_colors = graph.get_node_labels()
         edge_colors = graph.get_edge_labels()
-        node_colors = graph.get_node_labels()
 
-        def get_subgraph_color(src_vertex, dst_vertex):
-            # Get the colors of the vertices in the pair
-            src_color = node_colors[src_vertex]
-            dst_color = node_colors[dst_vertex]
-            # Get IDs of the edges between src and dst, but also self loops
-            forward_edge_ids = graph.get_edges(src_vertex, dst_vertex)
-            backward_edge_ids = graph.get_edges(dst_vertex, src_vertex)
-            src_self_edge_ids = graph.get_edges(src_vertex, src_vertex)
-            dst_self_edge_ids = graph.get_edges(dst_vertex, dst_vertex)
-            # Get the colors of the edges mentioned earlier
-            forward_edge_colors = [edge_colors[forward_edge_id] for forward_edge_id in forward_edge_ids]
-            backward_edge_colors = [edge_colors[backward_edge_id] for backward_edge_id in backward_edge_ids]
-            src_self_edge_colors = [edge_colors[src_self_edge_id] for src_self_edge_id in src_self_edge_ids]
-            dst_self_edge_colors = [edge_colors[dst_self_edge_id] for dst_self_edge_id in dst_self_edge_ids]
-            forward_edge_colors.sort()
-            backward_edge_colors.sort()
-            src_self_edge_colors.sort()
-            dst_self_edge_colors.sort()
-            # Get the color of the pair
-            subgraph_key = (src_color, dst_color, tuple(forward_edge_colors), tuple(backward_edge_colors), tuple(src_self_edge_colors), tuple(dst_self_edge_colors))
-            if subgraph_key not in self._color_function: self._color_function[subgraph_key] = len(self._color_function)
-            return self._color_function[subgraph_key]
+        # Compute the initial coloring.
+        current_coloring = np.zeros(num_vertices * num_vertices, dtype=int)
+        for src_vertex in range(num_vertices):
+            for dst_vertex in range(num_vertices):
+                pair_index = self._pair_to_index(src_vertex, dst_vertex, num_vertices)
+                current_coloring[pair_index] = self._pair_get_subgraph_color(src_vertex, dst_vertex, graph, vertex_colors, edge_colors)
 
-        def to_index(src_vertex, dst_vertex): return src_vertex * num_nodes + dst_vertex
+        # Compute the indices of the 2-FWL neighbors.
+        neighboring_indices = self._pair_get_all_neighboring_indices(num_vertices)
 
-        def get_neighboring_indices(src_vertex, dst_vertex):
-            indices = np.zeros((num_nodes, 2), dtype=int)
-            for middle_vertex in range(num_nodes):
-                indices[middle_vertex, 0] = to_index(src_vertex, middle_vertex)
-                indices[middle_vertex, 1] = to_index(middle_vertex, dst_vertex)
-            return indices
-
-        # TODO: Try to simplify the helper functions above, compute them directly with numpy.
-
-        current_coloring = np.zeros(num_nodes * num_nodes, dtype=int)
-        neighboring_indices = [None] * (num_nodes * num_nodes)
-
-        for src_vertex in range(num_nodes):
-            for dst_vertex in range(num_nodes):
-                pair_index = to_index(src_vertex, dst_vertex)
-                current_coloring[pair_index] = get_subgraph_color(src_vertex, dst_vertex)
-                neighboring_indices[pair_index] = get_neighboring_indices(src_vertex, dst_vertex)
-
+        # Update colors using 2-FWL until convergence.
         num_iterations = 0
         while True:
             num_iterations += 1
             next_coloring = np.zeros_like(current_coloring)
 
-            for src_vertex in range(num_nodes):
-                for dst_vertex in range(num_nodes):
-                    pair_index = to_index(src_vertex, dst_vertex)
+            for src_vertex in range(num_vertices):
+                for dst_vertex in range(num_vertices):
+                    pair_index = self._pair_to_index(src_vertex, dst_vertex, num_vertices)
                     neighboring_colors = list(map(tuple, current_coloring[neighboring_indices[pair_index]]))
                     neighboring_colors.sort()
                     color_key = (current_coloring[pair_index], *neighboring_colors)
@@ -130,6 +147,7 @@ class WeisfeilerLeman:
             if ((current_coloring + coloring_difference) == next_coloring).all(): break
             else: current_coloring = next_coloring
 
+        # Return a multiset of colors and their counts, together with the number of iterations.
         colors, counts = np.unique(current_coloring, return_counts=True)
         color_sort = np.lexsort((counts, colors))
         return num_iterations, tuple(colors[color_sort]), tuple(counts[color_sort])

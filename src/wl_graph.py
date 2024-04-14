@@ -1,8 +1,13 @@
+from collections import defaultdict
+
+
 class Graph:
     def __init__(self, directed: bool):
         self._directed = directed
         self._outgoing_edges = []
         self._ingoing_edges = []
+        self._outgoing_adjacent = []
+        self._ingoing_adjacent = []
         self._edge_sources = []
         self._edge_destinations = []
         self._unique_node_labels = set()
@@ -15,6 +20,8 @@ class Graph:
         n = self.get_num_nodes()
         self._outgoing_edges.append([])
         self._ingoing_edges.append([])
+        self._outgoing_adjacent.append(defaultdict(list))
+        self._ingoing_adjacent.append(defaultdict(list))
         self._node_labels.append(label)
         self._unique_node_labels.add(label)
         return n
@@ -23,6 +30,8 @@ class Graph:
         n = self.get_num_edges()
         self._outgoing_edges[v].append(n)
         self._ingoing_edges[w].append(n)
+        self._outgoing_adjacent[v][w].append(n)
+        self._ingoing_adjacent[w][v].append(n)
         self._edge_sources.append(v)
         self._edge_destinations.append(w)
         self._edge_labels.append(label)
@@ -32,6 +41,8 @@ class Graph:
             n = self.get_num_edges()
             self._outgoing_edges[w].append(n)
             self._ingoing_edges[v].append(n)
+            self._outgoing_adjacent[w][v].append(n)
+            self._ingoing_adjacent[v][w].append(n)
             self._edge_sources.append(w)
             self._edge_destinations.append(v)
             self._edge_labels.append(label)
@@ -73,12 +84,7 @@ class Graph:
         return self._directed
 
     def get_edges(self, src_vertex, dst_vertex):
-        edges = []
-        for edge_id in self._outgoing_edges[src_vertex]:
-            assert self.get_source(edge_id) == src_vertex
-            if self.get_destination(edge_id) == dst_vertex:
-                edges.append(edge_id)
-        return edges
+        return self._outgoing_adjacent[src_vertex][dst_vertex]
 
     def undirected(self):
         return not self._directed
