@@ -11,7 +11,12 @@ class WeisfeilerLeman:
         self._k = k
 
 
-    def _get_color(self, key):
+    # ------------------------
+    # | 1-FWL implementation |
+    # ------------------------
+
+
+    def _singleton_get_color(self, key):
                 if key not in self._color_function:
                     color = len(self._color_function)
                     self._color_function[key] = color
@@ -21,9 +26,9 @@ class WeisfeilerLeman:
 
 
     def _singleton_coloring(self, graph: Graph):
-        num_vertices = graph.get_num_nodes()
+        num_vertices = graph.get_num_vertices()
         edge_coloring = np.array(graph.get_edge_labels())
-        current_coloring = np.array([self._get_color(graph.get_node_label(vertex)) for vertex in range(num_vertices)])
+        current_coloring = np.array([self._singleton_get_color(graph.get_vertex_label(vertex)) for vertex in range(num_vertices)])
 
         ingoing_edges = [np.array(graph.get_inbound_edges(vertex)) for vertex in range(num_vertices)]
         outgoing_edges = [np.array(graph.get_outbound_edges(vertex)) for vertex in range(num_vertices)]
@@ -53,7 +58,7 @@ class WeisfeilerLeman:
                 # Get and set the new color based on the current color and the color of adjacent nodes.
                 node_color = current_coloring[vertex]
                 color_key = (node_color, tuple(ingoing_node_colors), tuple(ingoing_edge_colors), tuple(outgoing_node_colors), tuple(outgoing_edge_colors))
-                next_coloring[vertex] = self._get_color(color_key)
+                next_coloring[vertex] = self._singleton_get_color(color_key)
 
             # Check if we've reached a fixpoint.
             coloring_difference = next_coloring[0] - current_coloring[0]
@@ -63,6 +68,11 @@ class WeisfeilerLeman:
         colors, counts = np.unique(current_coloring, return_counts=True)
         color_sort = np.lexsort((counts, colors))
         return num_iterations, tuple(colors[color_sort]), tuple(counts[color_sort])
+
+
+    # ------------------------
+    # | 2-FWL implementation |
+    # ------------------------
 
 
     def _pair_to_index(self, src_vertex, dst_vertex, num_vertices): return src_vertex * num_vertices + dst_vertex
@@ -112,8 +122,8 @@ class WeisfeilerLeman:
 
     def _pair_coloring(self, graph: Graph):
         # Make these available for helper functions.
-        num_vertices = graph.get_num_nodes()
-        vertex_colors = graph.get_node_labels()
+        num_vertices = graph.get_num_vertices()
+        vertex_colors = graph.get_vertex_labels()
         edge_colors = graph.get_edge_labels()
 
         # Compute the initial coloring.
@@ -150,6 +160,11 @@ class WeisfeilerLeman:
         colors, counts = np.unique(current_coloring, return_counts=True)
         color_sort = np.lexsort((counts, colors))
         return num_iterations, tuple(colors[color_sort]), tuple(counts[color_sort])
+
+
+    # --------------------
+    # | k-FWL dispatcher |
+    # --------------------
 
 
     def compute_coloring(self, graph: Graph) -> Tuple[int, np.ndarray]:

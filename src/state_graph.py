@@ -33,12 +33,13 @@ class StateGraph:
     In this version, we give all vertices the same color
     and encode type information using loop edges
     """
-    def __init__(self, state : State):
+    def __init__(self, state : State, skip_nauty : bool = False):
         self._state = state
 
         self._uvc_graph = self._create_undirected_vertex_colored_graph(state)
-        self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
-        self._nauty_certificate = nauty_certificate(self._nauty_graph)
+        if not skip_nauty:
+            self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
+            self._nauty_certificate = nauty_certificate(self._nauty_graph)
 
 
     def _create_index_mapper(self, state: State):

@@ -1,8 +1,8 @@
 from collections import defaultdict
 from pathlib import Path
-from pymimir import DomainParser, ProblemParser, GroundedSuccessorGenerator, StateSpace, State
+from pymimir import DomainParser, ProblemParser, Domain, Problem, GroundedSuccessorGenerator, StateSpace, State
 from tqdm import tqdm
-from typing import Any, Dict, Set
+from typing import Any, Dict, List, Set, Tuple
 
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
@@ -10,40 +10,37 @@ from .wl_algorithm import WeisfeilerLeman
 from .wl_graph import Graph as WLGraph
 
 
-def add_to_class_uvc_exact(equivalence_classes: Dict[Any, Set], state_graph: StateGraph, state : State):
-    exact_key = state_graph.nauty_certificate, state_graph.uvc_graph.get_colors()
-    equivalence_classes[exact_key].add(state)
-
-
-def add_to_class_uvc_wl(equivalence_classes: Dict[Any, Set], wl: WeisfeilerLeman, state_graph: StateGraph, state : State):
+def to_uvc_graph(state: State) -> WLGraph:
+    state_graph = StateGraph(state, skip_nauty=True)
     uvc_vertices = state_graph._uvc_graph._vertices
     uvc_edges = state_graph._uvc_graph._adj_list
     to_wl_vertex = {}
     wl_graph = WLGraph(False)
     for vertex_id, vertex_data in uvc_vertices.items():
-        to_wl_vertex[vertex_id] = wl_graph.add_node(vertex_data.color.value)
+        to_wl_vertex[vertex_id] = wl_graph.add_vertex(vertex_data.color.value)
     for vertex_id, adjacent_ids in uvc_edges.items():
         for adjacent_id in adjacent_ids:
             wl_graph.add_edge(to_wl_vertex[vertex_id], to_wl_vertex[adjacent_id])
-    # Compute histogram and add state to equivalence class
-    wl_key = wl.compute_coloring(wl_graph)
-    equivalence_classes[wl_key].add(state)
+    return wl_graph
 
 
-def add_to_class_dec_wl(equivalence_classes: Dict[Any, Set], wl: WeisfeilerLeman, state : State):
+def to_dec_graph(state: State) -> WLGraph:
     wl_graph = WLGraph(True)
     to_wl_vertex = {}
     # Add nodes.
     for object in state.get_problem().objects:
-        to_wl_vertex[object] = wl_graph.add_node()
+        to_wl_vertex[object] = wl_graph.add_vertex()
     # Helper function for adding edges.
     def add_labeled_edge(atom, offset):
+        # Nullary atoms are added as self-edges for all vertices.
         if atom.predicate.arity == 0:
-            pass  # Add some information?
-            # raise Exception("predicate arity is not 1 or 2")
+            for vertex in to_wl_vertex.values():
+                wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
+        # Unary atoms are added as self-edges.
         elif atom.predicate.arity == 1:
             vertex = to_wl_vertex[atom.terms[0]]
             wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
+        # Binary atoms are added as directed edges.
         elif atom.predicate.arity == 2:
             src_vertex = to_wl_vertex[atom.terms[0]]
             dst_vertex = to_wl_vertex[atom.terms[1]]
@@ -58,11 +55,7 @@ def add_to_class_dec_wl(equivalence_classes: Dict[Any, Set], wl: WeisfeilerLeman
     for literal in state.get_problem().goal:
         assert not literal.negated
         add_labeled_edge(literal.atom, len(state.get_problem().domain.predicates))
-    # Compute histogram and add state to equivalence class.
-    wl_key = wl.compute_coloring(wl_graph)
-    equivalence_classes[wl_key].add(state)
-    if len(equivalence_classes[wl_key]) > 1:
-        pass
+    return wl_graph
 
 
 class Driver:
@@ -71,7 +64,50 @@ class Driver:
         self._problem_file_path = problem_file_path
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
+        self._verbosity = verbosity.upper()
         add_console_handler(self._logger)
+
+
+    def _parse_instance(self) -> Tuple[Domain, Problem]:
+        domain_parser = DomainParser(str(self._domain_file_path))
+        problem_parser = ProblemParser(str(self._problem_file_path))
+        domain = domain_parser.parse()
+        problem = problem_parser.parse(domain)
+        return domain, problem
+
+
+    def _generate_states(self, problem: Problem) -> (List[State] | None):
+        successor_generator = GroundedSuccessorGenerator(problem)
+        state_space = StateSpace.new(problem, successor_generator, 1_000_000)
+        if state_space is not None: return state_space.get_states()
+        else: return None
+
+
+    def _partition_with_nauty(self, states: List[State]) -> List[List[State]]:
+        partitions = defaultdict(list)
+        for state in tqdm(states, mininterval=0.5):
+            state_graph = StateGraph(state, skip_nauty=False)
+            exact_key = state_graph.nauty_certificate, state_graph.uvc_graph.get_colors()
+            partitions[exact_key].append(state_graph.state)
+        return list(partitions.values())
+
+
+    def _validate_wl_correctness(self, partitions: List[List[State]], k, to_graph) -> Tuple[bool, int]:
+        correct = True
+        conflicts = 0
+        wl = WeisfeilerLeman(k)
+        state_colorings = {}
+        for partition in tqdm(partitions, mininterval=0.5):
+            representative = partition[0]
+            coloring = wl.compute_coloring(to_graph(representative))
+            if coloring in state_colorings:
+                correct = False
+                conflicts += 1
+                self._logger.info(f"[{k}-FWL] Conflict: {state_colorings[coloring]} and {representative}")
+            else:
+                state_colorings[coloring] = representative
+        return correct, conflicts
+
 
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
@@ -80,60 +116,37 @@ class Driver:
         print("Problem file:", self._problem_file_path)
         print()
 
-        # Parse the domain and the problem.
-        domain_parser = DomainParser(str(self._domain_file_path))
-        problem_parser = ProblemParser(str(self._problem_file_path))
-        domain = domain_parser.parse()
-        problem = problem_parser.parse(domain)
+        _, problem = self._parse_instance()
 
         # Generate the state space we will analyze.
-        self._logger.info("Generating state space...")
-        successor_generator = GroundedSuccessorGenerator(problem)
-        state_space = StateSpace.new(problem, successor_generator, 1_000_000)
-        states = state_space.get_states()
-        self._logger.info(f"# states: {state_space.num_states()}")
-        if not state_space:
-            print("Too many states. Aborting.")
-            raise Exception("state space is too large")
+        self._logger.info("[Preprocessing] Generating state space...")
+        states = self._generate_states(problem)
+        if states is None:
+            self._logger.info(f"[Preprocessing] State space is too large. Aborting.")
+            return
+        self._logger.info(f"[Preprocessing] States: {len(states)}")
 
-        # Generate equivalence classes according to an exact algorithm,
-        # as well as according to the k-WL algorithm on an undirected node labeled graph.
-        wl = WeisfeilerLeman(1)
-        uvc_exact_equivalence_classes = defaultdict(set)
-        uvc_wl_equivalence_classes = defaultdict(set)
-        self._logger.info("Generating equivalence classes...")
-        # for state in tqdm(states, mininterval=0.5):
-        #     state_graph = StateGraph(state)
-        #     add_to_class_uvc_exact(uvc_exact_equivalence_classes, state_graph, state)
-        #     # add_to_class_uvc_wl(uvc_wl_equivalence_classes, wl, state_graph, state)
-        self._logger.info(f"# uvc exact equivalence classes: {len(uvc_exact_equivalence_classes)}")
-        self._logger.info(f"# uvc wl equivalence classes: {len(uvc_wl_equivalence_classes)}")
+        # Generate exact equivalence classes
+        partitions = self._partition_with_nauty(states)
 
-        # Generate equivalence classes according to the k-WL algorithm, on a directed and and edge labeled graph.
+        # Validate 1-FWL on the DEC graph
+        self._logger.info("[1-FWL, DEC] Validating...")
+        dec_correct_1, dec_conflicts_1 = self._validate_wl_correctness(partitions, 1, to_dec_graph)
+        self._logger.info(f"[1-FWL, DEC] Valid: {dec_correct_1}; Conflicts: {dec_conflicts_1}")
 
-        # wl = WeisfeilerLeman(2)
-        # dec_wl_equivalence_classes = defaultdict(set)
-        # for state in tqdm(states, mininterval=0.5):
-        #     add_to_class_dec_wl(dec_wl_equivalence_classes, wl, state)
-        # self._logger.info(f"# dec wl equivalence classes: {len(dec_wl_equivalence_classes)}")
+        # Validate 1-FWL on the UVC graph
+        self._logger.info("[1-FWL, UVC] Validating...")
+        uvc_correct_1, uvc_conflicts_1 = self._validate_wl_correctness(partitions, 1, to_uvc_graph)
+        self._logger.info(f"[1-FWL, UVC] Valid: {uvc_correct_1}; Conflicts: {uvc_conflicts_1}")
 
-        from cProfile import Profile
-        from pstats import SortKey, Stats
-        with Profile() as profile:
-            wl = WeisfeilerLeman(2)
-            dec_wl_equivalence_classes = defaultdict(set)
-            for state in tqdm(states[:500], mininterval=0.5):
-                add_to_class_dec_wl(dec_wl_equivalence_classes, wl, state)
-            self._logger.info(f"# dec wl equivalence classes: {len(dec_wl_equivalence_classes)}")
-            Stats(profile).strip_dirs().sort_stats(SortKey.CUMULATIVE).print_stats(50)
+        # If 1-FWL produces conflicts on the DEC graph, test 2-FWL
+        if not dec_correct_1:
+            self._logger.info("[2-FWL, DEC] Validating...")
+            dec_correct_2, dec_conflicts_2 = self._validate_wl_correctness(partitions, 2, to_dec_graph)
+            self._logger.info(f"[2-FWL, DEC] Valid: {dec_correct_2}; Conflicts: {dec_conflicts_2}")
 
-        # Sanity check that each method produces classes of the same size.
-        uvc_exact_histogram = [len(eq_class) for eq_class in uvc_exact_equivalence_classes.values()]
-        uvc_exact_histogram.sort()
-        uvc_wl_histogram = [len(eq_class) for eq_class in uvc_wl_equivalence_classes.values()]
-        uvc_wl_histogram.sort()
-        dec_wl_histogram = [len(eq_class) for eq_class in dec_wl_equivalence_classes.values()]
-        dec_wl_histogram.sort()
-        self._logger.info(f"uvc exact == uvc wl: {uvc_exact_histogram == uvc_wl_histogram}")
-        self._logger.info(f"uvc exact == dec wl: {uvc_exact_histogram == dec_wl_histogram}")
-        self._logger.info(f"uvc wl == dec wl: {uvc_wl_histogram == dec_wl_histogram}")
+        # If 1-FWL produces conflicts on the UVC graph, test 2-FWL
+        if not uvc_correct_1:
+            self._logger.info("[2-FWL, UVC] Validating...")
+            uvc_correct_2, uvc_conflicts_2 = self._validate_wl_correctness(partitions, 2, to_uvc_graph)
+            self._logger.info(f"[2-FWL, UVC] Valid: {uvc_correct_2}; Conflicts: {uvc_conflicts_2}")
