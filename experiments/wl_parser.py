@@ -3,13 +3,6 @@
 from lab.parser import Parser
 
 
-def error(content, props):
-    if "num_equivalence_classes" in props:
-        props["error"] = "success"
-    else:
-        props["error"] = "fail"
-
-
 def coverage(content, props):
     num_1fwl_conflicts = props.get("num_1fwl_conflicts", None)
     num_2fwl_conflicts = props.get("num_2fwl_conflicts", None)
@@ -17,6 +10,24 @@ def coverage(content, props):
     props["coverage"] = int((num_1fwl_conflicts is not None and num_1fwl_conflicts == 0) or \
         (num_1fwl_conflicts is not None and num_1fwl_conflicts > 0 and num_2fwl_conflicts is not None))
 
+def adapt_booleans(content, props):
+    is_1fwl_valid = props.get("is_1fwl_valid", None)
+    if is_1fwl_valid is not None:
+        if is_1fwl_valid == "True":
+            props["is_1fwl_valid"] = 1
+        elif is_1fwl_valid == "False":
+            props["is_1fwl_valid"] = 0
+        else:
+            raise RuntimeError("Unexpected string in is_1fwl_valid: ", is_1fwl_valid)
+
+    is_2fwl_valid = props.get("is_2fwl_valid", None)
+    if is_2fwl_valid:
+        if is_2fwl_valid == "True":
+            props["is_2fwl_valid"] = 1
+        elif is_2fwl_valid == "False":
+            props["is_2fwl_valid"] = 0
+        else:
+            raise RuntimeError("Unexpected string in is_2fwl_valid: ", is_2fwl_valid)
 
 class WLParser(Parser):
     """
@@ -44,9 +55,10 @@ class WLParser(Parser):
         super().__init__()
         self.add_pattern("num_states", r".*\[Preprocessing\] States: (.+)", type=int)
         self.add_pattern("num_partitions", r".*\[Nauty\] Partitions: (.+)", type=int)
-        self.add_pattern("is_1fwl_valid", r".*\[1-FWL, UVC\] Valid: (.+); Conflicts: .+", type=bool)
+        self.add_pattern("is_1fwl_valid", r".*\[1-FWL, UVC\] Valid: (.+); Conflicts: .+", type=str)
         self.add_pattern("num_1fwl_conflicts", r".*\[1-FWL, UVC\] Valid: .+; Conflicts: (.+)", type=int)
-        self.add_pattern("is_2fwl_valid", r".*\[2-FWL, UVC\] Valid: (.+); Conflicts: .+", type=bool)
+        self.add_pattern("is_2fwl_valid", r".*\[2-FWL, UVC\] Valid: (.+); Conflicts: .+", type=str)
         self.add_pattern("num_2fwl_conflicts", r".*\[2-FWL, UVC\] Valid: .+; Conflicts: (.+)", type=int)
 
         self.add_function(coverage)
+        self.add_function(adapt_booleans)

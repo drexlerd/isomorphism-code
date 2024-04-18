@@ -78,7 +78,7 @@ else:
         "spanner:p-1-1-1-0.pddl",
         "visitall:p-1-0.5-2-0.pddl",
     ]
-    TIME_LIMIT = 60
+    TIME_LIMIT = 300
 ATTRIBUTES = [
     "run_dir",
     Attribute("coverage", absolute=True, min_wins=False, scale="linear"),
