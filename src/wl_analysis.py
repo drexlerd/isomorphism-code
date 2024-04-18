@@ -4,7 +4,7 @@ from collections import defaultdict
 from pathlib import Path
 from pymimir import DomainParser, ProblemParser, Domain, Problem, GroundedSuccessorGenerator, StateSpace, State
 from tqdm import tqdm
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
@@ -82,7 +82,7 @@ class Driver:
         return domain, problem
 
 
-    def _generate_states(self, problem: Problem) -> (List[State] | None):
+    def _generate_states(self, problem: Problem) -> Union[List[State], None]:
         successor_generator = GroundedSuccessorGenerator(problem)
         state_space = StateSpace.new(problem, successor_generator, 1_000_000)
         if state_space is not None: return state_space.get_states()

@@ -1,9 +1,6 @@
 ./dependencies/mimir
-clingo==5.7.1
-dlplan==0.3.9
 graphviz==0.20.1
 lab==8.0
-numpy==1.26.4
 pykwl==0.0.6
 pynauty==2.8.6
 termcolor==2.4.0
