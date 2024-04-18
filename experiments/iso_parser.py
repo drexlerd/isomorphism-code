@@ -28,3 +28,6 @@ class IsomorphismParser(Parser):
         self.add_pattern("average_time_per_state", r"Average time per state: (.+) seconds", type=float)
         self.add_function(error)
         self.add_function(coverage)
+
+
+
