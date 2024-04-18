@@ -140,6 +140,8 @@ class Driver:
                     target_id = state_map[state]
                     for creating_info in search_nodes[state].creating_infos:
                         source_id = state_map[creating_info.parent_state]
+                        if source_id == target_id:
+                            continue
                         transitions[source_id].append(XTransition(source_id, target_id, XAction(creating_info.creating_action.schema.name, [object_map[obj] for obj in creating_info.creating_action.get_arguments()])))
             goal_states = set(state_map[state] for state in closed_list if state.literals_hold(problem.goal))
             domain = XDomain(list(constant_map.values()), list(predicate_map.values()), list(static_predicate_map.values()))
@@ -147,3 +149,5 @@ class Driver:
             graph = XEquivalenceGraph(domain, problem, states, transitions, goal_states)
             write_equivalence_graph(graph, Path("equivalence_graph.json").absolute())
             read_equivalence_graph(Path("equivalence_graph.json").absolute())
+
+        return domain, problem, search_nodes, class_index_to_states

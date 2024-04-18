@@ -1,5 +1,5 @@
 from dlplan.core import Boolean, Numerical, State
-from dlplan.policy import Policy
+from dlplan.policy import Policy, NamedBoolean, NamedNumerical
 
 import math
 
@@ -103,31 +103,39 @@ class Sketch:
                     stack.pop(-1)
         return True
 
-    def _compute_state_b_values(self, booleans: List[Boolean], numericals: List[Numerical], instance_data: InstanceData, state: State):
-        return tuple([boolean.evaluate(state, instance_data.denotations_caches) for boolean in booleans] + [numerical.evaluate(state, instance_data.denotations_caches) > 0 for numerical in numericals])
+    def _compute_state_b_values(self, booleans: List[NamedBoolean], numericals: List[NamedNumerical], instance_data: InstanceData, state: State):
+        return tuple([boolean.get_element().evaluate(state, instance_data.denotations_caches) for boolean in booleans] + [numerical.get_element().evaluate(state, instance_data.denotations_caches) > 0 for numerical in numericals])
 
     def _verify_goal_separating_features(self, instance_data: InstanceData):
         """
         Returns True iff sketch features separate goal from nongoal states.
         """
-        goal_b_values = set()
-        nongoal_b_values = set()
+        goal_b_values = defaultdict(set)
+        nongoal_b_values =  defaultdict(set)
+        booleans = sorted(list(self.dlplan_policy.get_booleans()), key=lambda x : str(x))
+        numericals = sorted(list(self.dlplan_policy.get_numericals()), key=lambda x : str(x))
+
         for s_idx, state in instance_data.state_space.get_states().items():
-            b_values = self._compute_state_b_values(self.dlplan_policy.get_booleans(), self.dlplan_policy.get_numericals(), instance_data, state)
+            b_values = self._compute_state_b_values(booleans, numericals, instance_data, state)
             separating = True
             if instance_data.is_goal(s_idx):
-                goal_b_values.add(b_values)
+                goal_b_values[b_values].add(s_idx)
                 if b_values in nongoal_b_values:
                     separating = False
             else:
-                nongoal_b_values.add(b_values)
+                nongoal_b_values[b_values].add(s_idx)
                 if b_values in goal_b_values:
                     separating = False
             if not separating:
                 print("Features do not separate goals from non goals")
                 print("Booleans:")
-                print("State:", str(state))
                 print("b_values:", b_values)
+                print("Non goal states:")
+                for s_prime_idx in nongoal_b_values[b_values]:
+                    print(instance_data.state_space.get_states()[s_prime_idx])
+                print("Goal states:")
+                for s_prime_idx in goal_b_values[b_values]:
+                    print(instance_data.state_space.get_states()[s_prime_idx])
                 return False
         return True
 
@@ -152,4 +160,4 @@ class Sketch:
         print(str(self.dlplan_policy))
         print("Numer of sketch rules:", len(self.dlplan_policy.get_rules()))
         print("Number of selected features:", len(self.dlplan_policy.get_booleans()) + len(self.dlplan_policy.get_numericals()))
-        print("Maximum complexity of selected feature:", max([0] + [boolean.compute_complexity() for boolean in self.dlplan_policy.get_booleans()] + [numerical.compute_complexity() for numerical in self.dlplan_policy.get_numericals()]))
+        print("Maximum complexity of selected feature:", max([0] + [boolean.get_element().compute_complexity() for boolean in self.dlplan_policy.get_booleans()] + [numerical.get_element().compute_complexity() for numerical in self.dlplan_policy.get_numericals()]))
