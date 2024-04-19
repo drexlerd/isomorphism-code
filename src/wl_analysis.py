@@ -82,11 +82,9 @@ class Driver:
         return domain, problem
 
 
-    def _generate_states(self, problem: Problem) -> Union[List[State], None]:
+    def _generate_state_space(self, problem: Problem) -> Union[StateSpace, None]:
         successor_generator = GroundedSuccessorGenerator(problem)
-        state_space = StateSpace.new(problem, successor_generator, 1_000_000)
-        if state_space is not None: return state_space.get_states()
-        else: return None
+        return StateSpace.new(problem, successor_generator, 1_000_000)
 
 
     def _partition_with_nauty(self, states: List[State], progress_bar: bool) -> List[List[State]]:
@@ -109,7 +107,7 @@ class Driver:
         return list(partitions.values())
 
 
-    def _validate_wl_correctness(self, partitions: List[List[State]], k, to_graph, progress_bar: bool) -> Tuple[bool, int]:
+    def _validate_wl_correctness(self, state_space: StateSpace, partitions: List[List[State]], k, to_graph, progress_bar: bool) -> Tuple[bool, int]:
         # Check whether the to_graph function can handle states of this sort.
         if to_graph(partitions[0][0]) is None: return False, -1
         # Test representatives from each partition to see if two are mapped to the same class.
@@ -125,7 +123,7 @@ class Driver:
             if coloring in state_colorings:
                 correct = False
                 conflicts += 1
-                self._logger.info(f"[{k}-FWL] Conflict: {state_colorings[coloring]} and {representative}")
+                self._logger.info(f"[{k}-FWL] Conflict: {state_colorings[coloring].get_atoms()} with cost {state_space.get_distance_to_goal_state(state_colorings[coloring])} and {representative.get_atoms()} with cost {state_space.get_distance_to_goal_state(representative)} relative to goal {representative.get_problem().goal}")
             else:
                 state_colorings[coloring] = representative
         return correct, conflicts
@@ -143,10 +141,13 @@ class Driver:
 
         # Generate the state space we will analyze.
         self._logger.info("[Preprocessing] Generating state space...")
-        states = self._generate_states(problem)
-        if states is None:
+        state_space = self._generate_state_space(problem)
+
+        if state_space is None:
             self._logger.info(f"[Preprocessing] State space is too large. Aborting.")
             return
+
+        states = state_space.get_states()
         self._logger.info(f"[Preprocessing] States: {len(states)}")
 
         # Generate exact equivalence classes.
@@ -165,26 +166,26 @@ class Driver:
 
         # # Validate 1-FWL on the DEC graph.
         # self._logger.info("[1-FWL, DEC] Validating...")
-        # dec_correct_1, dec_conflicts_1 = self._validate_wl_correctness(partitions, 1, to_dec_graph, progress_bar)
+        # dec_correct_1, dec_conflicts_1 = self._validate_wl_correctness(state_space, partitions, 1, to_dec_graph, progress_bar)
         # if (not dec_correct_1) and (dec_conflicts_1 < 0): self._logger.info(f"[1-FWL, DEC] Graph cannot be constructed. Skipping.")
         # else: self._logger.info(f"[1-FWL, DEC] Valid: {dec_correct_1}; Conflicts: {dec_conflicts_1}")
 
         # Validate 1-FWL on the UVC graph.
         self._logger.info("[1-FWL, UVC] Validating...")
-        uvc_correct_1, uvc_conflicts_1 = self._validate_wl_correctness(partitions, 1, to_uvc_graph, progress_bar)
+        uvc_correct_1, uvc_conflicts_1 = self._validate_wl_correctness(state_space, partitions, 1, to_uvc_graph, progress_bar)
         if (not uvc_correct_1) and (uvc_conflicts_1 < 0): self._logger.info(f"[1-FWL, UVC] Graph cannot be constructed. Skipping.")
         else: self._logger.info(f"[1-FWL, UVC] Valid: {uvc_correct_1}; Conflicts: {uvc_conflicts_1}")
 
         # # If 1-FWL produces conflicts on the DEC graph, test 2-FWL.
         # if not dec_correct_1:
         #     self._logger.info("[2-FWL, DEC] Validating...")
-        #     dec_correct_2, dec_conflicts_2 = self._validate_wl_correctness(partitions, 2, to_dec_graph, progress_bar)
+        #     dec_correct_2, dec_conflicts_2 = self._validate_wl_correctness(state_space, partitions, 2, to_dec_graph, progress_bar)
         #     if (not dec_correct_2) and (dec_conflicts_2 < 0): self._logger.info(f"[2-FWL, DEC] Graph cannot be constructed. Skipping.")
         #     else: self._logger.info(f"[2-FWL, DEC] Valid: {dec_correct_2}; Conflicts: {dec_conflicts_2}")
 
         # If 1-FWL produces conflicts on the UVC graph, test 2-FWL.
         if not uvc_correct_1:
             self._logger.info("[2-FWL, UVC] Validating...")
-            uvc_correct_2, uvc_conflicts_2 = self._validate_wl_correctness(partitions, 2, to_uvc_graph, progress_bar)
+            uvc_correct_2, uvc_conflicts_2 = self._validate_wl_correctness(state_space, partitions, 2, to_uvc_graph, progress_bar)
             if (not uvc_correct_2) and (uvc_conflicts_2 < 0): self._logger.info(f"[2-FWL, UVC] Graph cannot be constructed. Skipping.")
             else: self._logger.info(f"[2-FWL, UVC] Valid: {uvc_correct_2}; Conflicts: {uvc_conflicts_2}")
