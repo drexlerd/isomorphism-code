@@ -65,9 +65,10 @@ def to_uvc_graph(state: State) -> kwl.Graph:
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, ignore_counting: bool, verbosity: str):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
+        self._ignore_counting = ignore_counting
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
@@ -98,7 +99,7 @@ class Driver:
 
     def _partition_with_wl(self, states: List[State], k, to_graph, progress_bar: bool) -> List[List[State]]:
         partitions = defaultdict(list)
-        wl = kwl.WeisfeilerLeman(k)
+        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
         for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
             wl_graph = to_graph(state)
             num_iterations, colors, counts = wl.compute_coloring(wl_graph)
@@ -113,7 +114,7 @@ class Driver:
         # Test representatives from each partition to see if two are mapped to the same class.
         correct = True
         conflicts = 0
-        wl = kwl.WeisfeilerLeman(k)
+        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
         state_colorings = {}
         for partition in tqdm(partitions, mininterval=0.5, disable=not progress_bar):
             representative = partition[0]
@@ -164,24 +165,11 @@ class Driver:
             uvc_wl_2_partitions_wl = self._partition_with_wl(states, 2, to_uvc_graph, progress_bar)
             self._logger.info(f"[DEBUG] 2-WL partitions: {len(uvc_wl_2_partitions_wl)}")
 
-        # # Validate 1-FWL on the DEC graph.
-        # self._logger.info("[1-FWL, DEC] Validating...")
-        # dec_correct_1, dec_conflicts_1 = self._validate_wl_correctness(state_space, partitions, 1, to_dec_graph, progress_bar)
-        # if (not dec_correct_1) and (dec_conflicts_1 < 0): self._logger.info(f"[1-FWL, DEC] Graph cannot be constructed. Skipping.")
-        # else: self._logger.info(f"[1-FWL, DEC] Valid: {dec_correct_1}; Conflicts: {dec_conflicts_1}")
-
         # Validate 1-FWL on the UVC graph.
         self._logger.info("[1-FWL, UVC] Validating...")
         uvc_correct_1, uvc_conflicts_1 = self._validate_wl_correctness(state_space, partitions, 1, to_uvc_graph, progress_bar)
         if (not uvc_correct_1) and (uvc_conflicts_1 < 0): self._logger.info(f"[1-FWL, UVC] Graph cannot be constructed. Skipping.")
         else: self._logger.info(f"[1-FWL, UVC] Valid: {uvc_correct_1}; Conflicts: {uvc_conflicts_1}")
-
-        # # If 1-FWL produces conflicts on the DEC graph, test 2-FWL.
-        # if not dec_correct_1:
-        #     self._logger.info("[2-FWL, DEC] Validating...")
-        #     dec_correct_2, dec_conflicts_2 = self._validate_wl_correctness(state_space, partitions, 2, to_dec_graph, progress_bar)
-        #     if (not dec_correct_2) and (dec_conflicts_2 < 0): self._logger.info(f"[2-FWL, DEC] Graph cannot be constructed. Skipping.")
-        #     else: self._logger.info(f"[2-FWL, DEC] Valid: {dec_correct_2}; Conflicts: {dec_conflicts_2}")
 
         # If 1-FWL produces conflicts on the UVC graph, test 2-FWL.
         if not uvc_correct_1:

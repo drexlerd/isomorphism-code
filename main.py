@@ -44,6 +44,7 @@ if __name__ == "__main__":
     add_pddl_options(wl_parser)
     add_verbosity_option(wl_parser)
     add_dump_dot_option(wl_parser)
+    wl_parser.add_argument("--ignore_counting", action="store_true", help="Disallow counting quantifiers.")
     # wl_parser.add_argument("-k", "--dimension", type=int, help="Dimension of Weisfeiler-Leman", required=True)
 
     args = parser.parse_args()
@@ -64,6 +65,7 @@ if __name__ == "__main__":
         driver = Driver(
             Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
+            args.ignore_counting,
             args.verbosity)
 
     # Run the configuration
