@@ -50,15 +50,17 @@ class StateGraph:
             index_mapper.add("o_" + obj.name)
         for typ in problem.domain.types:
             index_mapper.add("t_" + typ.name)
-        for const in problem.domain.constants:
-            index_mapper.add("c_" + const.name)
         for pred in problem.domain.predicates:
             for i in range(pred.arity):
                 index_mapper.add("p_" + pred.name + f":{i}")
             for i in range(pred.arity):
-                index_mapper.add("p_" + pred.name + "_g" + f":{i}")
+                index_mapper.add("p_" + pred.name + "_g_false" + f":{i}")
             for i in range(pred.arity):
-                index_mapper.add("not p_" + pred.name + "_g" + f":{i}")
+                index_mapper.add("p_" + pred.name + "_g_true" + f":{i}")
+            for i in range(pred.arity):
+                index_mapper.add("not p_" + pred.name + "_g_true" + f":{i}")
+            for i in range(pred.arity):
+                index_mapper.add("not p_" + pred.name + "_g_false" + f":{i}")
         return index_mapper
 
     def _create_undirected_vertex_colored_graph(self, state : State):
@@ -76,6 +78,15 @@ class StateGraph:
                     value=index_mapper.str_to_int("t_" + obj.type.name),
                     info=obj.type.name))
             graph.add_vertex(v)
+
+        def translate_atom_to_atom_repr(atom):
+            return (atom.predicate.name, tuple([obj.name for obj in atom.terms]))
+
+        def translate_literal_to_atom_repr(literal):
+            return (literal.atom.predicate.name, tuple([obj.name for obj in literal.atom.terms]))
+
+        state_atoms_reprs = set(translate_atom_to_atom_repr(atom) for atom in state.get_atoms())
+        goal_atoms_reprs = set(translate_literal_to_atom_repr(literal) for literal in problem.goal if not literal.negated)
 
         # Add atom edges
         for atom in state.get_atoms():
@@ -103,15 +114,26 @@ class StateGraph:
             atom = goal_literal.atom
             negated = goal_literal.negated
 
+            if negated:
+                if translate_literal_to_atom_repr(goal_literal) not in state_atoms_reprs:
+                    suffix = "_true"
+                else:
+                    suffix = "_false"
+            else:
+                if translate_literal_to_atom_repr(goal_literal) in state_atoms_reprs:
+                    suffix = "_true"
+                else:
+                    suffix = "_false"
+
             v_pos_prev = None
             for pos, obj in enumerate(atom.terms):
                 v_object_id = index_mapper.str_to_int("o_" + obj.name)
 
                 # Add predicate node
                 if negated:
-                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g" + f":{pos}"), "not p_" + atom.predicate.name + "_g" + f":{pos}"))
+                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
                 else:
-                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g" + f":{pos}"), "p_" + atom.predicate.name + "_g" + f":{pos}"))
+                    v_pos = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
                 graph.add_vertex(v_pos)
                 add_vertex_id += 1
 
@@ -124,15 +146,6 @@ class StateGraph:
                     graph.add_edge(v_pos_prev.id, v_pos.id)
                     graph.add_edge(v_pos.id, v_pos_prev.id)
                 v_pos_prev = v_pos
-
-        # Add constant edges
-        for const in problem.domain.constants:
-            v_object_id = index_mapper.str_to_int("o_" + const.name)
-            v = UVCVertex(add_vertex_id, Color(index_mapper.str_to_int("c_" + const.name)))
-            graph.add_vertex(v)
-            add_vertex_id += 1
-            graph.add_edge(v_object_id, v.id)
-            graph.add_edge(v.id, v_object_id)
 
         assert graph.test_is_undirected()
         return graph
