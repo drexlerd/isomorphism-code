@@ -28,8 +28,8 @@ class GNN(Module):
     def __init__(self, num_embeddings, embedding_size, num_layers):
         super(GNN, self).__init__()
         # self._layer_conv = GraphConv(embedding_size, embedding_size, aggr=aggr.SoftmaxAggregation())
-        # self._layer_conv = GraphConv(embedding_size, embedding_size, aggr=aggr.MaxAggregation())
-        self._layer_conv = GraphConv(embedding_size, embedding_size, aggr=aggr.SumAggregation())
+        self._layer_conv = GraphConv(embedding_size, embedding_size, aggr=aggr.MaxAggregation())
+        # self._layer_conv = GraphConv(embedding_size, embedding_size, aggr=aggr.SumAggregation())
         self._update_mlp = Sequential(Linear(embedding_size, embedding_size), Mish(), Linear(embedding_size, embedding_size))
         self._readout_mlp = Sequential(Linear(embedding_size, embedding_size), Mish(), Linear(embedding_size, 1))
         self._embedding = Embedding(num_embeddings, embedding_size)
@@ -144,7 +144,7 @@ class Driver:
 
         # Training loop.
 
-        model = GNN(64, 16, 8).to(device)
+        model = GNN(64, 16, 30).to(device)
         optimizer = optim.Adam(model.parameters(), lr=0.0002)
 
         for i in range(10000):
