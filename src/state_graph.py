@@ -33,9 +33,10 @@ class StateGraph:
     In this version, we give all vertices the same color
     and encode type information using loop edges
     """
-    def __init__(self, state : State, skip_nauty : bool = False):
+    def __init__(self, state : State, mark_true_goal_atoms : bool = False,  skip_nauty : bool = False):
         self._state = state
-
+        # TODO: Use `mark_true_goal_atoms`.
+        raise Exception("TODO is not implemented")
         self._uvc_graph = self._create_undirected_vertex_colored_graph(state)
         if not skip_nauty:
             self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)

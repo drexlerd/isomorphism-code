@@ -10,8 +10,8 @@ from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
 
 
-def to_uvc_graph(state: State) -> kwl.Graph:
-    state_graph = StateGraph(state, skip_nauty=True)
+def to_uvc_graph(state: State, mark_true_goal_atoms: bool) -> kwl.Graph:
+    state_graph = StateGraph(state, mark_true_goal_atoms, skip_nauty=True)
     uvc_vertices = state_graph.uvc_graph.vertices
     uvc_edges = state_graph.uvc_graph.adj_list
     to_wl_vertex = {}
@@ -24,51 +24,50 @@ def to_uvc_graph(state: State) -> kwl.Graph:
     return wl_graph
 
 
-def to_dec_graph(state: State) -> kwl.Graph:
-    wl_graph = kwl.Graph(True)
-    to_wl_vertex = {}
-    # Add nodes.
-    for object in state.get_problem().objects:
-        to_wl_vertex[object] = wl_graph.add_node()
-    # Helper function for adding edges.
-    def add_labeled_edge(atom: Atom, offset: int):
-        # Nullary atoms are added as self-edges for all vertices.
-        if atom.predicate.arity == 0:
-            for vertex in to_wl_vertex.values():
-                wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
-        # Unary atoms are added as self-edges.
-        elif atom.predicate.arity == 1:
-            vertex = to_wl_vertex[atom.terms[0]]
-            wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
-        # Binary atoms are added as directed edges.
-        elif atom.predicate.arity == 2:
-            src_vertex = to_wl_vertex[atom.terms[0]]
-            dst_vertex = to_wl_vertex[atom.terms[1]]
-            wl_graph.add_edge(src_vertex, dst_vertex, atom.predicate.id + offset)
-        else:
-            raise RuntimeError("ternary predicate")
-    # Add edges.
-    try:
-        # Add state edges.
-        for atom in state.get_atoms():
-            add_labeled_edge(atom, 0)
-        # Add goal edges.
-        for literal in state.get_problem().goal:
-            assert not literal.negated
-            add_labeled_edge(literal.atom, len(state.get_problem().domain.predicates))
-        # Add types
-        if len(state.get_problem().domain.types) > 1:
-            raise NotImplementedError()
-        return wl_graph
-    except:
-        return None
+# def to_dec_graph(state: State) -> kwl.Graph:
+#     wl_graph = kwl.Graph(True)
+#     to_wl_vertex = {}
+#     # Add nodes.
+#     for object in state.get_problem().objects:
+#         to_wl_vertex[object] = wl_graph.add_node()
+#     # Helper function for adding edges.
+#     def add_labeled_edge(atom: Atom, offset: int):
+#         # Nullary atoms are added as self-edges for all vertices.
+#         if atom.predicate.arity == 0:
+#             for vertex in to_wl_vertex.values():
+#                 wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
+#         # Unary atoms are added as self-edges.
+#         elif atom.predicate.arity == 1:
+#             vertex = to_wl_vertex[atom.terms[0]]
+#             wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
+#         # Binary atoms are added as directed edges.
+#         elif atom.predicate.arity == 2:
+#             src_vertex = to_wl_vertex[atom.terms[0]]
+#             dst_vertex = to_wl_vertex[atom.terms[1]]
+#             wl_graph.add_edge(src_vertex, dst_vertex, atom.predicate.id + offset)
+#         else:
+#             raise RuntimeError("ternary predicate")
+#     # Add edges.
+#     try:
+#         # Add state edges.
+#         for atom in state.get_atoms():
+#             add_labeled_edge(atom, 0)
+#         # Add goal edges.
+#         for literal in state.get_problem().goal:
+#             assert not literal.negated
+#             add_labeled_edge(literal.atom, len(state.get_problem().domain.predicates))
+#         # Add types
+#         if len(state.get_problem().domain.types) > 1:
+#             raise NotImplementedError()
+#         return wl_graph
+#     except:
+#         return None
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, ignore_counting: bool, verbosity: str):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
-        self._ignore_counting = ignore_counting
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
@@ -97,9 +96,9 @@ class Driver:
         return list(partitions.values())
 
 
-    def _partition_with_wl(self, states: List[State], k, to_graph, progress_bar: bool) -> List[List[State]]:
+    def _partition_with_wl(self, states: List[State], k: int, ignore_counting: bool, to_graph, progress_bar: bool) -> List[List[State]]:
         partitions = defaultdict(list)
-        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
+        wl = kwl.WeisfeilerLeman(k, ignore_counting)
         for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
             wl_graph = to_graph(state)
             num_iterations, colors, counts = wl.compute_coloring(wl_graph)
@@ -108,14 +107,14 @@ class Driver:
         return list(partitions.values())
 
 
-    def _validate_wl_correctness(self, state_space: StateSpace, partitions: List[List[State]], k, to_graph, progress_bar: bool) -> Tuple[bool, int]:
+    def _validate_wl_correctness(self, state_space: StateSpace, partitions: List[List[State]], k: int, ignore_counting: bool, to_graph, progress_bar: bool) -> Tuple[bool, int]:
         # Check whether the to_graph function can handle states of this sort.
         if to_graph(partitions[0][0]) is None: return False, -1
         # Test representatives from each partition to see if two are mapped to the same class.
         correct = True
         total_conflicts = 0
         value_conflicts = 0
-        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
+        wl = kwl.WeisfeilerLeman(k, ignore_counting)
         state_colorings = {}
         for partition in tqdm(partitions, mininterval=0.5, disable=not progress_bar):
             representative = partition[0]
@@ -169,22 +168,40 @@ class Driver:
         # If WL is implemented correctly, then validating correctness the way we do is safe.
         # However, double check by partitioning with WL and if more partitions than with Nauty is found, then something is wrong.
         if self._verbosity == "DEBUG":
-            uvc_wl_1_partitions_wl = self._partition_with_wl(states, 1, to_uvc_graph, progress_bar)
-            self._logger.info(f"[DEBUG, UVC] 1-WL partitions: {len(uvc_wl_1_partitions_wl)}")
-            dec_wl_1_partitions_wl = self._partition_with_wl(states, 1, to_dec_graph, progress_bar)
-            self._logger.info(f"[DEBUG, DEC] 1-WL partitions: {len(dec_wl_1_partitions_wl)}")
-            uvc_wl_2_partitions_wl = self._partition_with_wl(states, 2, to_uvc_graph, progress_bar)
-            self._logger.info(f"[DEBUG, UVC] 2-WL partitions: {len(uvc_wl_2_partitions_wl)}")
+            def run_partition_config(k: int, ignore_counting: bool, mark_true_goal_atoms: bool):
+                uvc_c_org_wl_1_partitions_wl = self._partition_with_wl(states, k, ignore_counting, lambda state: to_uvc_graph(state, mark_true_goal_atoms), progress_bar)
+                tag = f"DEBUG, UVC, {'F' if ignore_counting else 'C'}, {'TGA' if mark_true_goal_atoms else 'RAW'}"
+                self._logger.info(f"[{tag}] {k}-WL partitions: {len(uvc_c_org_wl_1_partitions_wl)}")
 
-        # Validate 1-FWL on the UVC graph.
-        self._logger.info("[1-FWL, UVC] Validating...")
-        uvc_correct_1, uvc_total_conflicts_1, uvc_value_conflicts_1 = self._validate_wl_correctness(state_space, partitions, 1, to_uvc_graph, progress_bar)
-        if (not uvc_correct_1) and (uvc_total_conflicts_1 < 0): self._logger.info(f"[1-FWL, UVC] Graph cannot be constructed. Skipping.")
-        else: self._logger.info(f"[1-FWL, UVC] Valid: {uvc_correct_1}; Total Conflicts: {uvc_total_conflicts_1}; Value Conflicts: {uvc_value_conflicts_1}")
+            # 1-FWL
+            run_partition_config(1, False, False)
+            run_partition_config(1, False, True)
+            run_partition_config(1, True, False)
+            run_partition_config(1, True, True)
 
-        # If 1-FWL produces conflicts on the UVC graph, test 2-FWL.
-        if not uvc_correct_1:
-            self._logger.info("[2-FWL, UVC] Validating...")
-            uvc_correct_2, uvc_conflicts_2, uvc_value_conflicts_2 = self._validate_wl_correctness(state_space, partitions, 2, to_uvc_graph, progress_bar)
-            if (not uvc_correct_2) and (uvc_conflicts_2 < 0): self._logger.info(f"[2-FWL, UVC] Graph cannot be constructed. Skipping.")
-            else: self._logger.info(f"[2-FWL, UVC] Valid: {uvc_correct_2}; Total Conflicts: {uvc_conflicts_2}; Value Conflicts: {uvc_value_conflicts_2}")
+            # 2-FWL
+            run_partition_config(2, False, False)
+            run_partition_config(2, False, True)
+            run_partition_config(2, True, False)
+            run_partition_config(2, True, True)
+
+        def run_validation_config(k: int, ignore_counting: bool, mark_true_goal_atoms: bool) -> bool:
+            correct, total_conflicts, value_conflicts = self._validate_wl_correctness(state_space, partitions, k, ignore_counting, lambda state: to_uvc_graph(state, mark_true_goal_atoms), progress_bar)
+            tag = f"{k}-FWL, UVC, {'F' if ignore_counting else 'C'}, {'TGA' if mark_true_goal_atoms else 'RAW'}"
+            if (not correct) and (total_conflicts < 0): self._logger.info(f"[{tag}] Graph cannot be constructed. Skipping.")
+            else: self._logger.info(f"[{tag}] Valid: {correct}; Total Conflicts: {total_conflicts}; Value Conflicts: {value_conflicts}")
+            return correct
+
+        # 1-FWL
+        valid_1ff = run_validation_config(1, False, False)
+        valid_1ft = run_validation_config(1, False, True)
+        valid_1tf = run_validation_config(1, True, False)
+        valid_1tt = run_validation_config(1, True, True)
+
+        # 2-FWL
+        if not valid_1ff: run_validation_config(2, False, False)
+        if not valid_1ft: run_validation_config(2, False, True)
+        if not valid_1tf: run_validation_config(2, True, False)
+        if not valid_1tt: run_validation_config(2, True, True)
+
+        self._logger.info("Ran to completion.")
