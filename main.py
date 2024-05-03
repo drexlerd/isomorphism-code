@@ -36,8 +36,6 @@ if __name__ == "__main__":
     add_verbosity_option(exact_parser)
     add_dump_dot_option(exact_parser)
     exact_parser.add_argument("--enable-pruning", action="store_true", help="If specified, only a single representative for each equivalence is kept in a breadth-first-search.")
-    exact_parser.add_argument("--dump-equivalence-graph", action="store_true", help="If specified, the equivalence graph json representation will be written to a file.")
-    exact_parser.add_argument("--num-threads", type=int, default=1, help="Number of threads")
 
     # Sub parser 2: wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
@@ -60,9 +58,7 @@ if __name__ == "__main__":
             Path(args.problem_file_path).absolute(),
             args.verbosity,
             args.dump_dot,
-            args.enable_pruning,
-            args.dump_equivalence_graph,
-            args.num_threads)
+            args.enable_pruning)
     elif args.type == "wl":
         from src.wl_analysis import Driver
         driver = Driver(

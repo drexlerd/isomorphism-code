@@ -35,8 +35,7 @@ class StateGraph:
     """
     def __init__(self, state : State, mark_true_goal_atoms : bool = False,  skip_nauty : bool = False):
         self._state = state
-        # TODO: Use `mark_true_goal_atoms`.
-        raise Exception("TODO is not implemented")
+        self._mark_true_goal_atoms = mark_true_goal_atoms
         self._uvc_graph = self._create_undirected_vertex_colored_graph(state)
         if not skip_nauty:
             self._nauty_graph = self._create_pynauty_undirected_vertex_colored_graph(self._uvc_graph)
@@ -55,9 +54,13 @@ class StateGraph:
             for i in range(pred.arity):
                 index_mapper.add("p_" + pred.name + f":{i}")
             for i in range(pred.arity):
+                index_mapper.add("p_" + pred.name + "_g" + f":{i}")
+            for i in range(pred.arity):
                 index_mapper.add("p_" + pred.name + "_g_false" + f":{i}")
             for i in range(pred.arity):
                 index_mapper.add("p_" + pred.name + "_g_true" + f":{i}")
+            for i in range(pred.arity):
+                index_mapper.add("not p_" + pred.name + "_g" + f":{i}")
             for i in range(pred.arity):
                 index_mapper.add("not p_" + pred.name + "_g_true" + f":{i}")
             for i in range(pred.arity):
@@ -115,16 +118,19 @@ class StateGraph:
             atom = goal_literal.atom
             negated = goal_literal.negated
 
-            if negated:
-                if translate_literal_to_atom_repr(goal_literal) not in state_atoms_reprs:
-                    suffix = "_true"
+            if self._mark_true_goal_atoms:
+                if negated:
+                    if translate_literal_to_atom_repr(goal_literal) not in state_atoms_reprs:
+                        suffix = "_true"
+                    else:
+                        suffix = "_false"
                 else:
-                    suffix = "_false"
+                    if translate_literal_to_atom_repr(goal_literal) in state_atoms_reprs:
+                        suffix = "_true"
+                    else:
+                        suffix = "_false"
             else:
-                if translate_literal_to_atom_repr(goal_literal) in state_atoms_reprs:
-                    suffix = "_true"
-                else:
-                    suffix = "_false"
+                suffix = ""
 
             v_pos_prev = None
             for pos, obj in enumerate(atom.terms):
