@@ -53,7 +53,7 @@ class Driver:
         while queue:
             cur_state = queue.popleft()
 
-            state_graph = StateGraph(cur_state)
+            state_graph = StateGraph(cur_state, mark_true_goal_atoms=False)
 
             if (num_generated_states % 100 == 1):
                 # Overwrite the line in the loop

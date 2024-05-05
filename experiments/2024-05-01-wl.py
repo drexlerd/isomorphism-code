@@ -78,16 +78,18 @@ else:
         "spanner:p-1-1-1-0.pddl",
         "visitall:p-1-0.5-2-0.pddl",
     ]
-    TIME_LIMIT = 300
+    TIME_LIMIT = 10
 ATTRIBUTES = [
     "run_dir",
     Attribute("coverage", absolute=True, min_wins=False, scale="linear"),
     Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_partitions", absolute=True, min_wins=True, scale="linear"),
     Attribute("is_1fwl_valid", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_1fwl_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_1fwl_total_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_1fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
     Attribute("is_2fwl_valid", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_2fwl_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_2fwl_total_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_2fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
 ]
 
 MEMORY_LIMIT = 12000
@@ -98,7 +100,7 @@ exp = Experiment(environment=ENV)
 exp.add_parser(WLParser())
 
 for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
-    ### Undirected
+    ### Additional options:
     run = exp.add_run()
     # Create symbolic links and aliases. This is optional. We
     # could also use absolute paths in add_command().
@@ -126,6 +128,96 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # The algorithm name is only really needed when there are
     # multiple algorithms.
     run.set_property("id", ["wl", task.domain, task.problem])
+
+
+    ### Additional options: --ignore-counting
+    run = exp.add_run()
+    # Create symbolic links and aliases. This is optional. We
+    # could also use absolute paths in add_command().
+    run.add_resource("domain", task.domain_file, symlink=True)
+    run.add_resource("problem", task.problem_file, symlink=True)
+    run.add_resource("main_script", REPO / "main.py", symlink=True)
+    # 'ff' binary has to be on the PATH.
+    # We could also use exp.add_resource().
+    run.add_command(
+        "main_script_wl",
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--ignore-counting"],
+        time_limit=TIME_LIMIT,
+        memory_limit=MEMORY_LIMIT,
+    )
+    # AbsoluteReport needs the following properties:
+    # 'domain', 'problem', 'algorithm', 'coverage'.
+    run.set_property("domain", task.domain)
+    run.set_property("problem", task.problem)
+    run.set_property("algorithm", "wl-ignore_counting")
+    # BaseReport needs the following properties:
+    # 'time_limit', 'memory_limit'.
+    run.set_property("time_limit", TIME_LIMIT)
+    run.set_property("memory_limit", MEMORY_LIMIT)
+    # Every run has to have a unique id in the form of a list.
+    # The algorithm name is only really needed when there are
+    # multiple algorithms.
+    run.set_property("id", ["wl-ignore_counting", task.domain, task.problem])
+
+
+    ### Additional options: --mark-true-goal-atoms
+    run = exp.add_run()
+    # Create symbolic links and aliases. This is optional. We
+    # could also use absolute paths in add_command().
+    run.add_resource("domain", task.domain_file, symlink=True)
+    run.add_resource("problem", task.problem_file, symlink=True)
+    run.add_resource("main_script", REPO / "main.py", symlink=True)
+    # 'ff' binary has to be on the PATH.
+    # We could also use exp.add_resource().
+    run.add_command(
+        "main_script_wl",
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--mark-true-goal-atoms"],
+        time_limit=TIME_LIMIT,
+        memory_limit=MEMORY_LIMIT,
+    )
+    # AbsoluteReport needs the following properties:
+    # 'domain', 'problem', 'algorithm', 'coverage'.
+    run.set_property("domain", task.domain)
+    run.set_property("problem", task.problem)
+    run.set_property("algorithm", "wl-mark_true_goal_atoms")
+    # BaseReport needs the following properties:
+    # 'time_limit', 'memory_limit'.
+    run.set_property("time_limit", TIME_LIMIT)
+    run.set_property("memory_limit", MEMORY_LIMIT)
+    # Every run has to have a unique id in the form of a list.
+    # The algorithm name is only really needed when there are
+    # multiple algorithms.
+    run.set_property("id", ["wl-mark_true_goal_atoms", task.domain, task.problem])
+
+
+    ### Additional options: --ignore-counting --mark-true-goal-atoms
+    run = exp.add_run()
+    # Create symbolic links and aliases. This is optional. We
+    # could also use absolute paths in add_command().
+    run.add_resource("domain", task.domain_file, symlink=True)
+    run.add_resource("problem", task.problem_file, symlink=True)
+    run.add_resource("main_script", REPO / "main.py", symlink=True)
+    # 'ff' binary has to be on the PATH.
+    # We could also use exp.add_resource().
+    run.add_command(
+        "main_script_wl",
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--ignore-counting", "--mark-true-goal-atoms"],
+        time_limit=TIME_LIMIT,
+        memory_limit=MEMORY_LIMIT,
+    )
+    # AbsoluteReport needs the following properties:
+    # 'domain', 'problem', 'algorithm', 'coverage'.
+    run.set_property("domain", task.domain)
+    run.set_property("problem", task.problem)
+    run.set_property("algorithm", "wl-ignore_counting-mark_true_goal_atoms")
+    # BaseReport needs the following properties:
+    # 'time_limit', 'memory_limit'.
+    run.set_property("time_limit", TIME_LIMIT)
+    run.set_property("memory_limit", MEMORY_LIMIT)
+    # Every run has to have a unique id in the form of a list.
+    # The algorithm name is only really needed when there are
+    # multiple algorithms.
+    run.set_property("id", ["wl-ignore_counting-mark_true_goal_atoms", task.domain, task.problem])
 
 # Add step that writes experiment files to disk.
 exp.add_step("build", exp.build)

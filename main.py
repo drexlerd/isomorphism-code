@@ -42,6 +42,8 @@ if __name__ == "__main__":
     add_pddl_options(wl_parser)
     add_verbosity_option(wl_parser)
     add_dump_dot_option(wl_parser)
+    wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
+    wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
 
     # Sub parser 3: gnn
     gnn_parser = subparsers.add_parser("gnn", help="GNN trainer.")
@@ -64,7 +66,9 @@ if __name__ == "__main__":
         driver = Driver(
             Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
-            args.verbosity)
+            args.verbosity,
+            args.ignore_counting,
+            args.mark_true_goal_atoms)
     elif args.type == "gnn":
         from src.gnn import Driver
         driver = Driver(
