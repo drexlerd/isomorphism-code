@@ -28,10 +28,9 @@ def to_uvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atom
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path_1 : Path, problem_file_path_2 : Path, verbosity: str, ignore_counting: bool, mark_true_goal_atoms: bool):
-        self._domain_file_path = domain_file_path
-        self._problem_file_path_1 = problem_file_path_1
-        self._problem_file_path_2 = problem_file_path_2
+    def __init__(self, data_path : Path, verbosity: str, ignore_counting: bool, mark_true_goal_atoms: bool):
+        self._domain_file_path = (data_path / "domain.pddl").resolve()
+        self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
@@ -40,19 +39,28 @@ class Driver:
         add_console_handler(self._logger)
 
 
-    def _parse_instances(self) -> Tuple[Domain, Problem]:
+    def _parse_instances(self) -> Tuple[Domain, List[Problem]]:
         domain_parser = DomainParser(str(self._domain_file_path))
-        problem_parser_1 = ProblemParser(str(self._problem_file_path_1))
-        problem_parser_2 = ProblemParser(str(self._problem_file_path_2))
         domain = domain_parser.parse()
-        problem_1 = problem_parser_1.parse(domain)
-        problem_2 = problem_parser_2.parse(domain)
-        return domain, problem_1, problem_2
+        problems = []
+        for problem_file_path in self._problem_file_paths:
+            problem_parser = ProblemParser(str(problem_file_path))
+            problem = problem_parser.parse(domain)
+            problems.append(problem)
+        return domain, problems
 
 
-    def _generate_state_space(self, problem: Problem) -> Union[StateSpace, None]:
-        successor_generator = GroundedSuccessorGenerator(problem)
-        return StateSpace.new(problem, successor_generator, 1_000_000)
+    def _generate_state_spaces(self, problems: List[Problem]) -> List[StateSpace]:
+        state_spaces = []
+        for problem in problems:
+            successor_generator = GroundedSuccessorGenerator(problem)
+            state_space = StateSpace.new(problem, successor_generator, 1000)
+
+            if state_space is None:
+                continue
+
+            state_spaces.append(state_space)
+        return state_spaces
 
 
     def _partition_with_nauty(self, states: List[State], coloring_function: KeyToInt, progress_bar: bool) -> List[List[State]]:
@@ -66,57 +74,69 @@ class Driver:
         return list(partitions.values())
 
 
-    def _partition_with_wl(self, states: List[State], k: int, to_graph, progress_bar: bool) -> List[List[State]]:
+    def _partition_with_wl(self, statess: List[List[State]], k: int, to_graph, progress_bar: bool) -> List[List[List[State]]]:
         partitions = defaultdict(list)
         wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
-        for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
-            wl_graph = to_graph(state)
-            num_iterations, colors, counts = wl.compute_coloring(wl_graph)
-            coloring = (num_iterations, tuple(colors), tuple(counts))
-            partitions[coloring].append(state)
-        return list(partitions.values())
+        partitionss = []
+        for states in statess:
+            for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
+                wl_graph = to_graph(state)
+                num_iterations, colors, counts = wl.compute_coloring(wl_graph)
+                coloring = (num_iterations, tuple(colors), tuple(counts))
+                partitions[coloring].append(state)
+            partitionss.append(list(partitions.values()))
+        return partitionss
 
 
-    def _validate_wl_correctness(self, state_space_1: StateSpace, partitions_1: List[List[State]], state_space_2: StateSpace, partitions_2: List[List[State]], k: int, to_graph, progress_bar: bool) -> Tuple[bool, int]:
+    def _validate_wl_correctness(self, state_spaces: List[StateSpace], partitionss: List[List[List[State]]], k: int, to_graph, progress_bar: bool) -> Tuple[bool, int]:
         # Check whether the to_graph function can handle states of this sort.
-        if to_graph(partitions_1[0][0]) is None: return False, -1
-        if to_graph(partitions_2[0][0]) is None: return False, -1
+        for partitions in partitionss:
+            if to_graph(partitions[0][0]) is None: return False, -1
+
         # Test representatives from each partition to see if two are mapped to the same class.
         correct = True
         total_conflicts = 0
         value_conflicts = 0
         wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
-        state_colorings_1 = {}
-        for partition in partitions_1:
-            representative = partition[0]
-            wl_graph = to_graph(representative)
-            num_iterations, colors, counts = wl.compute_coloring(wl_graph)
-            coloring = (num_iterations, tuple(colors), tuple(counts))
-            state_colorings_1[coloring] = representative
+        state_colorings = defaultdict(set)
 
-        for partition_2 in partitions_2:
-            representative_2 = partition_2[0]
-            v_star_2 = state_space_2.get_distance_to_goal_state(representative_2)
-            wl_graph = to_graph(representative_2)
-            num_iterations, colors, counts = wl.compute_coloring(wl_graph)
-            coloring_2 = (num_iterations, tuple(colors), tuple(counts))
+        for i, partitions in enumerate(partitionss):
+            for partition in partitions:
+                representative = partition[0]
+                wl_graph = to_graph(representative)
+                num_iterations, colors, counts = wl.compute_coloring(wl_graph)
+                coloring = (num_iterations, tuple(colors), tuple(counts))
+                state_colorings[coloring].add((representative, i))
 
-            if coloring_2 in state_colorings_1:
-                representative_1 = state_colorings_1[coloring_2]
-                v_star_1 = state_space_1.get_distance_to_goal_state(representative_1)
+        for coloring, representative_infos in state_colorings.items():
+            representative_infos = list(representative_infos)
 
-                #if v_star_1 == v_star_2:
-                    # Skip states with same v*
-                #    continue
+            if len(representative_infos) == 1:
+                continue
 
-                self._logger.info(f"[{k}-FWL] Conflict!")
-                self._logger.info(f" > Goal 1: {representative_1.get_problem().goal}")
-                self._logger.info(f" > Goal 2: {representative_2.get_problem().goal}")
-                self._logger.info(f" > Cost: {v_star_1}; State 1: {representative_1.get_atoms()}")
-                self._logger.info(f" > Cost: {v_star_2}; State 2: {representative_2.get_atoms()}")
-                correct = False
-                total_conflicts += 1
-                value_conflicts += 1
+            correct = False
+
+            for i, (representative_1, i_1) in enumerate(representative_infos):
+                v_star_1 = state_spaces[i_1].get_distance_to_goal_state(representative_1)
+                for representative_2, i_2 in representative_infos[i_1:]:
+                    v_star_2 = state_spaces[i_2].get_distance_to_goal_state(representative_2)
+
+                    if v_star_1 == v_star_2:
+                        # Only count conflicts with different v* values
+                        continue
+
+                    if i_1 == i_2:
+                        # Only count conflicts between instances
+                        continue
+
+                    total_conflicts += len(representative_infos) * (len(representative_infos)-1)
+                    value_conflicts += len(representative_infos) * (len(representative_infos)-1)
+
+                    self._logger.info(f"[{k}-FWL] Conflict!")
+                    self._logger.info(f" > Goal {i_1}: {representative_1.get_problem().goal}")
+                    self._logger.info(f" > Goal {i_2}: {representative_2.get_problem().goal}")
+                    self._logger.info(f" > Cost: {v_star_1}; State {i_1}: {representative_1.get_atoms()}")
+                    self._logger.info(f" > Cost: {v_star_2}; State {i_2}: {representative_2.get_atoms()}")
 
         return correct, total_conflicts, value_conflicts
 
@@ -125,46 +145,46 @@ class Driver:
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
         print("Domain file:", self._domain_file_path)
-        print("Problem 1 file:", self._problem_file_path_1)
-        print("Problem 2 file:", self._problem_file_path_2)
+        for i, problem_file_path in enumerate(self._problem_file_paths):
+            print(f"Problem {i} file:", problem_file_path)
         print()
 
-        _, problem_1, problem_2 = self._parse_instances()
+        _, problems = self._parse_instances()
 
         progress_bar = self._verbosity == "DEBUG"
 
         # Generate the state space we will analyze.
         self._logger.info("[Preprocessing] Generating state space...")
-        state_space_1 = self._generate_state_space(problem_1)
-        state_space_2 = self._generate_state_space(problem_2)
+        state_spaces = self._generate_state_spaces(problems)
 
-        if state_space_1 is None or state_space_2 is None:
+        if not state_spaces:
             self._logger.info(f"[Preprocessing] State spaces are too large. Aborting.")
             return
 
-        states_1 = state_space_1.get_states()
-        states_2 = state_space_2.get_states()
-        self._logger.info(f"[Preprocessing] States 1: {len(states_1)}")
-        self._logger.info(f"[Preprocessing] States 2: {len(states_2)}")
+        statess = []
+        for i, state_space in enumerate(state_spaces):
+            states = state_space.get_states()
+            statess.append(states)
+            self._logger.info(f"[Preprocessing] States {i}: {len(states)}")
 
         # Generate exact equivalence classes.
         coloring_function = KeyToInt()
 
         self._logger.info("[Nauty] Computing...")
-        partitions_1 = self._partition_with_nauty(states_1, coloring_function, progress_bar)
-        partitions_2 = self._partition_with_nauty(states_2, coloring_function, progress_bar)
-        self._logger.info(f"[Nauty] Partitions 1: {len(partitions_1)}")
-        self._logger.info(f"[Nauty] Partitions 2: {len(partitions_2)}")
+        partitionss = []
+        for i, states in enumerate(statess):
+            partitions = self._partition_with_nauty(states, coloring_function, progress_bar)
+            partitionss.append(partitions)
+            self._logger.info(f"[Nauty] Partitions {i}: {len(partitions)}")
 
         # If WL is implemented correctly, then validating correctness the way we do is safe.
         # However, double check by partitioning with WL and if more partitions than with Nauty is found, then something is wrong.
         if self._verbosity == "DEBUG":
             def run_partition_config(k: int):
-                uvc_c_org_wl_1_partitions_wl_1 = self._partition_with_wl(states_1, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
-                uvc_c_org_wl_1_partitions_wl_2 = self._partition_with_wl(states_2, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
+                uvc_c_org_wl_1_partitions_wl_s = self._partition_with_wl(statess, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
                 tag = f"DEBUG, UVC"
-                self._logger.info(f"[{tag}] {k}-WL partitions 1: {len(uvc_c_org_wl_1_partitions_wl_1)}")
-                self._logger.info(f"[{tag}] {k}-WL partitions 2: {len(uvc_c_org_wl_1_partitions_wl_2)}")
+                for i, uvc_c_org_wl_1_partitions_wl in enumerate(uvc_c_org_wl_1_partitions_wl_s):
+                    self._logger.info(f"[{tag}] {k}-WL partitions {i}: {len(uvc_c_org_wl_1_partitions_wl)}")
 
             # 1-FWL
             run_partition_config(1)
@@ -173,7 +193,7 @@ class Driver:
             run_partition_config(2)
 
         def run_validation_config(k: int) -> bool:
-            correct, total_conflicts, value_conflicts = self._validate_wl_correctness(state_space_1, partitions_1, state_space_2, partitions_2, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
+            correct, total_conflicts, value_conflicts = self._validate_wl_correctness(state_spaces, partitionss, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
             tag = f"{k}-FWL, UVC"
             if (not correct) and (total_conflicts < 0): self._logger.info(f"[{tag}] Graph cannot be constructed. Skipping.")
             else: self._logger.info(f"[{tag}] Valid: {correct}; Total Conflicts: {total_conflicts}; Value Conflicts: {value_conflicts}")
