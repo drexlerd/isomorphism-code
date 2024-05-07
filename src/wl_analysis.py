@@ -8,10 +8,12 @@ from typing import List, Tuple, Union
 
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
+from .key_to_int import KeyToInt
+from .exact import create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
 
 
-def to_uvc_graph(state: State, mark_true_goal_atoms: bool) -> kwl.Graph:
-    state_graph = StateGraph(state, mark_true_goal_atoms, skip_nauty=True)
+def to_uvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.Graph:
+    state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
     uvc_vertices = state_graph.uvc_graph.vertices
     uvc_edges = state_graph.uvc_graph.adj_list
     to_wl_vertex = {}
@@ -89,12 +91,14 @@ class Driver:
         return StateSpace.new(problem, successor_generator, 1_000_000)
 
 
-    def _partition_with_nauty(self, states: List[State], progress_bar: bool) -> List[List[State]]:
+    def _partition_with_nauty(self, states: List[State], coloring_function: KeyToInt, progress_bar: bool) -> List[List[State]]:
         partitions = defaultdict(list)
         for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
-            state_graph = StateGraph(state, mark_true_goal_atoms=False, skip_nauty=False)
-            exact_key = state_graph.nauty_certificate, state_graph.uvc_graph.get_colors()
+            state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms=False)
+            nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
+            exact_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
             partitions[exact_key].append(state)
+
         return list(partitions.values())
 
 
@@ -162,16 +166,17 @@ class Driver:
         self._logger.info(f"[Preprocessing] States: {len(states)}")
 
         # Generate exact equivalence classes.
+        coloring_function = KeyToInt()
 
         self._logger.info("[Nauty] Computing...")
-        partitions = self._partition_with_nauty(states, progress_bar)
+        partitions = self._partition_with_nauty(states, coloring_function, progress_bar)
         self._logger.info(f"[Nauty] Partitions: {len(partitions)}")
 
         # If WL is implemented correctly, then validating correctness the way we do is safe.
         # However, double check by partitioning with WL and if more partitions than with Nauty is found, then something is wrong.
         if self._verbosity == "DEBUG":
             def run_partition_config(k: int):
-                uvc_c_org_wl_1_partitions_wl = self._partition_with_wl(states, k, lambda state: to_uvc_graph(state, self._mark_true_goal_atoms), progress_bar)
+                uvc_c_org_wl_1_partitions_wl = self._partition_with_wl(states, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
                 tag = f"DEBUG, UVC"
                 self._logger.info(f"[{tag}] {k}-WL partitions: {len(uvc_c_org_wl_1_partitions_wl)}")
 
@@ -182,7 +187,7 @@ class Driver:
             run_partition_config(2)
 
         def run_validation_config(k: int) -> bool:
-            correct, total_conflicts, value_conflicts = self._validate_wl_correctness(state_space, partitions, k, lambda state: to_uvc_graph(state, self._mark_true_goal_atoms), progress_bar)
+            correct, total_conflicts, value_conflicts = self._validate_wl_correctness(state_space, partitions, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
             tag = f"{k}-FWL, UVC"
             if (not correct) and (total_conflicts < 0): self._logger.info(f"[{tag}] Graph cannot be constructed. Skipping.")
             else: self._logger.info(f"[{tag}] Valid: {correct}; Total Conflicts: {total_conflicts}; Value Conflicts: {value_conflicts}")

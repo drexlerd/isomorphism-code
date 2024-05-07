@@ -6,11 +6,39 @@ from collections import defaultdict, deque
 from typing import Dict
 
 from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator, State
+from pynauty import Graph as NautyGraph, certificate
 
 from .state_graph import StateGraph
 from .logger import initialize_logger, add_console_handler
 from .search_node import SearchNode, CreatingInfo
+from .key_to_int import KeyToInt
+from .uvc_graph import UVCGraph
 
+
+def create_pynauty_undirected_vertex_colored_graph(uvc_graph: UVCGraph) -> NautyGraph:
+        # remap vertex indices
+        old_to_new_vertex_index = dict()
+        for vertex in uvc_graph.vertices.values():
+            old_to_new_vertex_index[vertex.id] = len(old_to_new_vertex_index)
+        adjacency_dict = defaultdict(set)
+        for source_id, target_ids in uvc_graph.adj_list.items():
+            adjacency_dict[old_to_new_vertex_index[source_id]] = set(old_to_new_vertex_index[target_id] for target_id in target_ids)
+        # compute vertex partitioning
+        color_to_vertices = defaultdict(set)
+        for vertex in uvc_graph.vertices.values():
+            color_to_vertices[vertex.color.value].add(old_to_new_vertex_index[vertex.id])
+        color_to_vertices = dict(sorted(color_to_vertices.items()))
+        vertex_coloring = list(color_to_vertices.values())
+
+        graph = NautyGraph(
+            number_of_vertices=len(old_to_new_vertex_index),
+            directed=False,
+            adjacency_dict=adjacency_dict,
+            vertex_coloring=vertex_coloring)
+        return graph
+
+def compute_nauty_certificate(nauty_graph: NautyGraph):
+    return certificate(nauty_graph)
 
 class Driver:
     def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool):
@@ -50,17 +78,20 @@ class Driver:
         search_nodes[initial_state] = SearchNode(creating_infos=[])
         num_generated_states += 1
 
+        coloring_function = KeyToInt()
+
         while queue:
             cur_state = queue.popleft()
 
-            state_graph = StateGraph(cur_state, mark_true_goal_atoms=False)
+            state_graph = StateGraph(cur_state, coloring_function, mark_true_goal_atoms=False)
+            nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
 
             if (num_generated_states % 100 == 1):
                 # Overwrite the line in the loop
                 print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.3f} seconds", end="")
                 sys.stdout.flush()
 
-            equivalence_class_key = (state_graph.nauty_certificate, state_graph.uvc_graph.get_colors())
+            equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
             if self._enable_pruning and equivalence_class_key in equivalence_class_to_index:
                 # Prune if represenative already exists
                 continue

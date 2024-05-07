@@ -44,6 +44,7 @@ if __name__ == "__main__":
     add_dump_dot_option(wl_parser)
     wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
     wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
+    wl_parser.add_argument("--terminate-early", action="store_true", help="If specified, terminate if colors distinguish partitions.")
 
     # Sub parser 3: gnn
     gnn_parser = subparsers.add_parser("gnn", help="GNN trainer.")
