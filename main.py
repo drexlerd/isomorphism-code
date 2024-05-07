@@ -51,6 +51,16 @@ if __name__ == "__main__":
     add_pddl_options(gnn_parser)
     add_verbosity_option(gnn_parser)
 
+    # Sub parser 3: pairwise-wl
+    wl_parser = subparsers.add_parser("pairwise-wl", help="k-WL abstraction generator.")
+    wl_parser.add_argument("--domain_file_path", required=True, help="The path to the domain file.")
+    wl_parser.add_argument("--problem_file_path_1", required=True, help="The path to the first problem file.")
+    wl_parser.add_argument("--problem_file_path_2", required=True, help="The path to the second problem file.")
+    add_verbosity_option(wl_parser)
+    wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
+    wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
+    wl_parser.add_argument("--terminate-early", action="store_true", help="If specified, terminate if colors distinguish partitions.")
+
     args = parser.parse_args()
 
     # Run the abstraction generator
@@ -67,6 +77,15 @@ if __name__ == "__main__":
         driver = Driver(
             Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
+            args.verbosity,
+            args.ignore_counting,
+            args.mark_true_goal_atoms)
+    elif args.type == "pairwise-wl":
+        from src.pairwise_wl_analysis import Driver
+        driver = Driver(
+            Path(args.domain_file_path).absolute(),
+            Path(args.problem_file_path_1).absolute(),
+            Path(args.problem_file_path_2).absolute(),
             args.verbosity,
             args.ignore_counting,
             args.mark_true_goal_atoms)
