@@ -1,14 +1,10 @@
 from pymimir import State, Action
 from dataclasses import dataclass
-from typing import List
-
-
-@dataclass
-class CreatingInfo:
-    parent_state: State
-    creating_action: Action
+from typing import List, Any
 
 
 @dataclass
 class SearchNode:
-    creating_infos: List[CreatingInfo]
+    parent_states: List[State]
+    g_value: int
+    equivalence_class_key: Any

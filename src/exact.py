@@ -10,7 +10,7 @@ from pynauty import Graph as NautyGraph, certificate
 
 from .state_graph import StateGraph
 from .logger import initialize_logger, add_console_handler
-from .search_node import SearchNode, CreatingInfo
+from .search_node import SearchNode
 from .key_to_int import KeyToInt
 from .uvc_graph import UVCGraph
 
@@ -57,9 +57,11 @@ class Driver:
         print("Problem file:", self._problem_file_path)
         print()
 
+        coloring_function = KeyToInt()
+
         num_generated_states = 0
-        equivalence_class_to_index = dict()
-        class_index_to_states = defaultdict(set)
+        class_states = defaultdict(set)
+        class_representative = dict()
 
         domain_parser = DomainParser(str(self._domain_file_path))
         domain = domain_parser.parse()
@@ -70,61 +72,94 @@ class Driver:
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
         initial_state = problem.create_state(problem.initial)
+        state_graph = StateGraph(initial_state, coloring_function, mark_true_goal_atoms=False)
+        nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
+        equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
+        class_representative[equivalence_class_key] = initial_state
+        class_states[equivalence_class_key].add(initial_state)
+
         queue = deque()
         queue.append(initial_state)
         closed_list = set()
         closed_list.add(initial_state)
         search_nodes : Dict[State, SearchNode] = dict()
-        search_nodes[initial_state] = SearchNode(creating_infos=[])
+        search_nodes[initial_state] = SearchNode([], 0, equivalence_class_key)
         num_generated_states += 1
 
-        coloring_function = KeyToInt()
+        goal_states = set()
 
         while queue:
             cur_state = queue.popleft()
+            cur_search_node = search_nodes[cur_state]
+            cur_representative = class_representative[cur_search_node.equivalence_class_key]
 
-            state_graph = StateGraph(cur_state, coloring_function, mark_true_goal_atoms=False)
-            nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
-
-            if (num_generated_states % 100 == 1):
-                # Overwrite the line in the loop
-                print(f"\rAverage time per state: {(time.time() - start_time) / num_generated_states:.3f} seconds", end="")
-                sys.stdout.flush()
-
-            equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
-            if self._enable_pruning and equivalence_class_key in equivalence_class_to_index:
-                # Prune if represenative already exists
-                continue
-
-            if equivalence_class_key not in equivalence_class_to_index:
-                equivalence_class_to_index[equivalence_class_key] = len(equivalence_class_to_index)
-            class_index = equivalence_class_to_index[equivalence_class_key]
-            class_index_to_states[class_index].add(state_graph.state)
-
-            if self._dump_dot:
-                state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_index}/{num_generated_states}.gc")
+            if cur_state.literals_hold(problem.goal):
+                goal_states.add(cur_state)
 
             for applicable_action in successor_generator.get_applicable_actions(cur_state):
                 suc_state = applicable_action.apply(cur_state)
 
                 if suc_state in closed_list:
-                    # Prune if state already in closed list
-                    search_nodes[suc_state].creating_infos.append(CreatingInfo(cur_state, applicable_action))
+                    # State has already been generated
+                    suc_representative = class_representative[search_nodes[suc_state].equivalence_class_key]
+                    if self._enable_pruning:
+                        # Pruning case: use representative states
+                        search_nodes[suc_representative].parent_states.append(cur_representative)
+                    else:
+                        # Complete case: use original states
+                        search_nodes[suc_state].parent_states.append(cur_state)
                     continue
-                closed_list.add(suc_state)
-                search_nodes[suc_state] = SearchNode(creating_infos=[CreatingInfo(cur_state, applicable_action)])
+
+                state_graph = StateGraph(suc_state, coloring_function, mark_true_goal_atoms=False)
+                nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
+                equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
+
+                if equivalence_class_key not in class_representative:
+                    class_representative[equivalence_class_key] = suc_state
+                class_states[equivalence_class_key].add(suc_state)
+
+                suc_representative = class_representative[equivalence_class_key]
+
+                #if self._dump_dot:
+                #    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_index}/{num_generated_states}.gc")
+
+                if self._enable_pruning:
+                    closed_list.add(suc_state)
+                    queue.append(suc_representative)
+                    search_nodes[suc_state] = SearchNode([cur_representative,], cur_search_node.g_value + 1, equivalence_class_key)
+                else:
+                    closed_list.add(suc_state)
+                    queue.append(suc_state)
+                    search_nodes[suc_state] = SearchNode([cur_state,], cur_search_node.g_value + 1, equivalence_class_key)
 
                 num_generated_states += 1
 
-                queue.append(suc_state)
         print()
+
+        queue = deque()
+        goal_distances = dict()
+        for goal_state in goal_states:
+            queue.append(goal_state)
+            goal_distances[goal_state] = 0
+
+        while queue:
+            cur_state = queue.popleft()
+
+            for pre_state in search_nodes[cur_state].parent_states:
+
+                if pre_state in goal_distances:
+                    continue
+
+                goal_distances[pre_state] = goal_distances[cur_state] + 1
+                queue.append(pre_state)
+
 
         end_time = time.time()
         runtime = end_time - start_time
         self._logger.info("Finished generating Aut(G)")
         print(f"Total time: {runtime:.2f} seconds")
         print("Number of generated states:", num_generated_states)
-        print("Number of equivalence classes:", len(equivalence_class_to_index))
+        print("Number of equivalence classes:", len(class_representative))
         print()
 
-        return domain, problem, search_nodes, class_index_to_states
+        return domain, problem, search_nodes
