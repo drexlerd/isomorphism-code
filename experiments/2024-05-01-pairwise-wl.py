@@ -32,9 +32,9 @@ NODE = platform.node()
 REMOTE = re.match(r"tetralith\d+.nsc.liu.se|n\d+", NODE)
 if REMOTE:
     ENV = TetralithEnvironment(
-        memory_per_cpu="96G",
+        memory_per_cpu="384G",
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        extra_options="#SBATCH --account=naiss2023-5-314")
+        extra_options="#SBATCH --account=naiss2023-5-314 -C fat --exclusive")
     SUITE = [
         "barman",
         "blocks_3",
@@ -92,7 +92,7 @@ ATTRIBUTES = [
     Attribute("num_2fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
 ]
 
-MEMORY_LIMIT = 96000
+MEMORY_LIMIT = 384000
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
@@ -104,7 +104,7 @@ for domain_name in SUITE:
     run = exp.add_run()
     # Create symbolic links and aliases. This is optional. We
     # could also use absolute paths in add_command().
-    print(BENCHMARKS_DIR / domain_name)
+
     run.add_resource("data", BENCHMARKS_DIR / domain_name, symlink=True)
     run.add_resource("main_script", REPO / "main.py", symlink=True)
     # 'ff' binary has to be on the PATH.
@@ -128,6 +128,35 @@ for domain_name in SUITE:
     # The algorithm name is only really needed when there are
     # multiple algorithms.
     run.set_property("id", ["pairwise-wl", domain_name])
+
+    ### Additional options:
+    run = exp.add_run()
+    # Create symbolic links and aliases. This is optional. We
+    # could also use absolute paths in add_command().
+
+    run.add_resource("data", BENCHMARKS_DIR / domain_name, symlink=True)
+    run.add_resource("main_script", REPO / "main.py", symlink=True)
+    # 'ff' binary has to be on the PATH.
+    # We could also use exp.add_resource().
+    run.add_command(
+        "main_script_pairwise_wl",
+        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms"],
+        time_limit=TIME_LIMIT,
+        memory_limit=MEMORY_LIMIT,
+    )
+    # AbsoluteReport needs the following properties:
+    # 'domain', 'problem', 'algorithm', 'coverage'.
+    run.set_property("domain", domain_name)
+    run.set_property("problem", domain_name)
+    run.set_property("algorithm", "pairwise-wl-mark-true-goal-atoms")
+    # BaseReport needs the following properties:
+    # 'time_limit', 'memory_limit'.
+    run.set_property("time_limit", TIME_LIMIT)
+    run.set_property("memory_limit", MEMORY_LIMIT)
+    # Every run has to have a unique id in the form of a list.
+    # The algorithm name is only really needed when there are
+    # multiple algorithms.
+    run.set_property("id", ["pairwise-wl-mark-true-goal-atoms", domain_name])
 
 # Add step that writes experiment files to disk.
 exp.add_step("build", exp.build)

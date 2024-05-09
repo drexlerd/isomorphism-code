@@ -40,22 +40,27 @@ def create_pynauty_undirected_vertex_colored_graph(uvc_graph: UVCGraph) -> Nauty
 def compute_nauty_certificate(nauty_graph: NautyGraph):
     return certificate(nauty_graph)
 
+logger = initialize_logger("exact")
+add_console_handler(logger)
+
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int = float("inf")):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
         self._enable_pruning = enable_pruning
-        self._logger = initialize_logger("exact")
-        self._logger.setLevel(verbosity)
-        add_console_handler(self._logger)
+        self._max_num_states = max_num_states
+
+        global logger
+        logger.setLevel(verbosity)
+        self._logger = logger
+
 
     def run(self):
         """ Main loop for computing Aut(S(P)) for state space S(P).
         """
-        print("Domain file:", self._domain_file_path)
-        print("Problem file:", self._problem_file_path)
-        print()
+        self._logger.info(f"Domain file: {self._domain_file_path}")
+        self._logger.info(f"Problem file: {self._problem_file_path}")
 
         coloring_function = KeyToInt()
 
@@ -116,12 +121,11 @@ class Driver:
 
                 if equivalence_class_key not in class_representative:
                     class_representative[equivalence_class_key] = suc_state
+                    if self._dump_dot:
+                        state_graph.uvc_graph.to_dot(f"outputs/uvcs/{num_generated_states}/{num_generated_states}.gc")
                 class_states[equivalence_class_key].add(suc_state)
 
                 suc_representative = class_representative[equivalence_class_key]
-
-                #if self._dump_dot:
-                #    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{class_index}/{num_generated_states}.gc")
 
                 if self._enable_pruning:
                     closed_list.add(suc_state)
@@ -134,7 +138,8 @@ class Driver:
 
                 num_generated_states += 1
 
-        print()
+                if (num_generated_states >= self._max_num_states):
+                    return [None] * 5
 
         queue = deque()
         goal_distances = dict()
@@ -157,9 +162,8 @@ class Driver:
         end_time = time.time()
         runtime = end_time - start_time
         self._logger.info("Finished generating Aut(G)")
-        print(f"Total time: {runtime:.2f} seconds")
-        print("Number of generated states:", num_generated_states)
-        print("Number of equivalence classes:", len(class_representative))
-        print()
+        self._logger.info(f"Total time: {runtime:.2f} seconds")
+        self._logger.info(f"Number of generated states: {num_generated_states}")
+        self._logger.info(f"Number of equivalence classes: {len(class_representative)}")
 
-        return domain, problem, search_nodes
+        return domain, problem, goal_distances, list(class_representative.values()), search_nodes

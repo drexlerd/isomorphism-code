@@ -19,6 +19,21 @@ class StateGraph:
         self._mark_true_goal_atoms = mark_true_goal_atoms
         self._uvc_graph = self._create_undirected_vertex_colored_graph(state)
 
+    @staticmethod
+    def get_num_vertices(state: State):
+        """ Return the number of vertices in the graph.
+        """
+        num_vertices = len(state.get_problem().objects)
+        for atom in state.get_atoms():
+            arity = len(atom.terms)
+            num_vertices += arity
+        for goal_literal in state.get_problem().goal:
+            atom = goal_literal.atom
+            arity = len(atom.terms)
+            num_vertices += arity
+        return num_vertices
+
+
     def _create_undirected_vertex_colored_graph(self, state : State):
         problem = state.get_problem()
         graph = UVCGraph(state)
@@ -108,6 +123,7 @@ class StateGraph:
                 v_pos_prev = v_pos
 
         assert graph.test_is_undirected()
+        assert len(graph.vertices) == StateGraph.get_num_vertices(self.state)
         return graph
 
 
