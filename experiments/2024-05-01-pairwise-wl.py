@@ -34,7 +34,7 @@ if REMOTE:
     ENV = TetralithEnvironment(
         memory_per_cpu="384G",
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        extra_options="#SBATCH --account=naiss2023-5-314 -C fat --exclusive")
+        extra_options="#SBATCH --account=naiss2023-5-314\n#SBATCH -C fat --exclusive")
     SUITE = [
         "barman",
         "blocks_3",
