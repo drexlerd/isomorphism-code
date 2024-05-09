@@ -9,7 +9,7 @@ from downward.reports.absolute import AbsoluteReport
 from lab.environments import TetralithEnvironment, LocalEnvironment
 from lab.experiment import Experiment
 from lab.reports import Attribute, geometric_mean
-from wl_parser import WLParser
+from pairwise_wl_parser import WLParser
 
 
 # Create custom report class with suitable info and error attributes.
@@ -57,7 +57,7 @@ if REMOTE:
     ]
     TIME_LIMIT = 60 * 60 * 12  # 12 hours
 else:
-    ENV = LocalEnvironment(processes=4)
+    ENV = LocalEnvironment(processes=12)
     SUITE = [
         "barman",
         "blocks_3",
@@ -82,14 +82,17 @@ else:
 ATTRIBUTES = [
     "run_dir",
     Attribute("coverage", absolute=True, min_wins=False, scale="linear"),
-    Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_partitions", absolute=True, min_wins=True, scale="linear"),
-    Attribute("is_1fwl_valid", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_1fwl_total_conflicts", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_1fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
-    Attribute("is_2fwl_valid", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_2fwl_total_conflicts", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_2fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_instances", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_final_states", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_total_states", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_1fwl_total_conflicts", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_2fwl_total_conflicts", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_1fwl_total_value_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_2fwl_total_value_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_1fwl_total_conflicts_same", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_2fwl_total_conflicts_same", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_1fwl_total_value_conflicts_same", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_2fwl_total_value_conflicts_same", absolute=True, min_wins=True, scale="linear"),
 ]
 
 MEMORY_LIMIT = 96000

@@ -44,12 +44,13 @@ logger = initialize_logger("exact")
 add_console_handler(logger)
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int = float("inf")):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int, coloring_function: KeyToInt = None):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
         self._enable_pruning = enable_pruning
         self._max_num_states = max_num_states
+        self._coloring_function = coloring_function if coloring_function is not None else KeyToInt()
 
         global logger
         logger.setLevel(verbosity)
@@ -62,9 +63,6 @@ class Driver:
         self._logger.info(f"Domain file: {self._domain_file_path}")
         self._logger.info(f"Problem file: {self._problem_file_path}")
 
-        coloring_function = KeyToInt()
-
-        num_generated_states = 0
         class_states = defaultdict(set)
         class_representative = dict()
 
@@ -77,7 +75,7 @@ class Driver:
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
         initial_state = problem.create_state(problem.initial)
-        state_graph = StateGraph(initial_state, coloring_function, mark_true_goal_atoms=False)
+        state_graph = StateGraph(initial_state, self._coloring_function, mark_true_goal_atoms=False)
         nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
         equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
         class_representative[equivalence_class_key] = initial_state
@@ -89,8 +87,6 @@ class Driver:
         closed_list.add(initial_state)
         search_nodes : Dict[State, SearchNode] = dict()
         search_nodes[initial_state] = SearchNode([], 0, equivalence_class_key)
-        num_generated_states += 1
-
         goal_states = set()
 
         while queue:
@@ -115,14 +111,14 @@ class Driver:
                         search_nodes[suc_state].parent_states.append(cur_state)
                     continue
 
-                state_graph = StateGraph(suc_state, coloring_function, mark_true_goal_atoms=False)
+                state_graph = StateGraph(suc_state, self._coloring_function, mark_true_goal_atoms=False)
                 nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
                 equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
 
                 if equivalence_class_key not in class_representative:
                     class_representative[equivalence_class_key] = suc_state
                     if self._dump_dot:
-                        state_graph.uvc_graph.to_dot(f"outputs/uvcs/{num_generated_states}/{num_generated_states}.gc")
+                        state_graph.uvc_graph.to_dot(f"outputs/uvcs/{len(class_representative)}/{len(search_nodes)}.gc")
                 class_states[equivalence_class_key].add(suc_state)
 
                 suc_representative = class_representative[equivalence_class_key]
@@ -136,9 +132,7 @@ class Driver:
                     queue.append(suc_state)
                     search_nodes[suc_state] = SearchNode([cur_state,], cur_search_node.g_value + 1, equivalence_class_key)
 
-                num_generated_states += 1
-
-                if (num_generated_states >= self._max_num_states):
+                if (len(search_nodes) >= self._max_num_states):
                     return [None] * 5
 
         queue = deque()
@@ -159,11 +153,12 @@ class Driver:
                 queue.append(pre_state)
 
 
+
         end_time = time.time()
         runtime = end_time - start_time
         self._logger.info("Finished generating Aut(G)")
         self._logger.info(f"Total time: {runtime:.2f} seconds")
-        self._logger.info(f"Number of generated states: {num_generated_states}")
+        self._logger.info(f"Number of generated states: {len(search_nodes)}")
         self._logger.info(f"Number of equivalence classes: {len(class_representative)}")
 
         return domain, problem, goal_distances, list(class_representative.values()), search_nodes
