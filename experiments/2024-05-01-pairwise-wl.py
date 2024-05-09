@@ -32,9 +32,9 @@ NODE = platform.node()
 REMOTE = re.match(r"tetralith\d+.nsc.liu.se|n\d+", NODE)
 if REMOTE:
     ENV = TetralithEnvironment(
-        memory_per_cpu="384G",
+        memory_per_cpu="96G",
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        extra_options="#SBATCH --account=naiss2023-5-314\n#SBATCH -C fat --exclusive")
+        extra_options="#SBATCH --account=naiss2023-5-314")
     SUITE = [
         "barman",
         "blocks_3",
@@ -92,7 +92,7 @@ ATTRIBUTES = [
     Attribute("num_2fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
 ]
 
-MEMORY_LIMIT = 384000
+MEMORY_LIMIT = 96000
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
