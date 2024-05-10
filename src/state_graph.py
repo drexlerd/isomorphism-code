@@ -58,7 +58,7 @@ class StateGraph:
         state_atoms_reprs = set(translate_atom_to_atom_repr(atom) for atom in state.get_atoms())
         goal_atoms_reprs = set(translate_literal_to_atom_repr(literal) for literal in problem.goal if not literal.negated)
 
-        add_vertex_id = len(graph.vertices)
+        helper_id = 0
 
         # Add atom edges
         for atom in state.get_atoms():
@@ -67,9 +67,9 @@ class StateGraph:
                 v_object_id = vertex_function.get_int_from_key("o_" + obj.name)
 
                 # Add predicate node
-                v_pos = UVCVertex(add_vertex_id, Color(self._coloring_function.get_int_from_key("p_" + atom.predicate.name + f":{pos}"), "p_" + atom.predicate.name + f":{pos}"))
+                v_pos = UVCVertex(vertex_function.get_int_from_key(f"h_{helper_id}"), Color(self._coloring_function.get_int_from_key("p_" + atom.predicate.name + f":{pos}"), "p_" + atom.predicate.name + f":{pos}"))
+                helper_id += 1
                 graph.add_vertex(v_pos)
-                add_vertex_id += 1
 
                 # Connect predicate node to object node
                 graph.add_edge(v_object_id, v_pos.id)
@@ -106,11 +106,11 @@ class StateGraph:
 
                 # Add predicate node
                 if negated:
-                    v_pos = UVCVertex(add_vertex_id, Color(self._coloring_function.get_int_from_key("not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
+                    v_pos = UVCVertex(vertex_function.get_int_from_key(f"h_{helper_id}"), Color(self._coloring_function.get_int_from_key("not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
                 else:
-                    v_pos = UVCVertex(add_vertex_id, Color(self._coloring_function.get_int_from_key("p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
+                    v_pos = UVCVertex(vertex_function.get_int_from_key(f"h_{helper_id}"), Color(self._coloring_function.get_int_from_key("p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
+                helper_id += 1
                 graph.add_vertex(v_pos)
-                add_vertex_id += 1
 
                 # Connect predicate node to object node
                 graph.add_edge(v_object_id, v_pos.id)
