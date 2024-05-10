@@ -73,7 +73,7 @@ class Driver:
         partitions = defaultdict(list)
         for state, value in tqdm(state_value_pairs, mininterval=0.5, disable=not progress_bar):
             state_graph = StateGraph(state, skip_nauty=False)
-            exact_key = state_graph.nauty_certificate, state_graph.uvc_graph.get_colors()
+            exact_key = state_graph.nauty_certificate, state_graph.uvc_graph.get_color_histogram()
             partitions[exact_key].append((state, value, state_graph))
         return list(partitions.values())
 

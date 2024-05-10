@@ -77,7 +77,7 @@ class Driver:
         initial_state = problem.create_state(problem.initial)
         state_graph = StateGraph(initial_state, self._coloring_function, mark_true_goal_atoms=False)
         nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
-        equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
+        equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_color_histogram())
         class_representative[equivalence_class_key] = initial_state
         class_states[equivalence_class_key].add(initial_state)
 
@@ -113,7 +113,7 @@ class Driver:
 
                 state_graph = StateGraph(suc_state, self._coloring_function, mark_true_goal_atoms=False)
                 nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
-                equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
+                equivalence_class_key = (nauty_certificate, state_graph.uvc_graph.get_color_histogram())
 
                 if equivalence_class_key not in class_representative:
                     class_representative[equivalence_class_key] = suc_state

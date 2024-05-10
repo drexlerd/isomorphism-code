@@ -96,7 +96,7 @@ class Driver:
         for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
             state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms=False)
             nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
-            exact_key = (nauty_certificate, state_graph.uvc_graph.get_colors())
+            exact_key = (nauty_certificate, state_graph.uvc_graph.get_color_histogram())
             partitions[exact_key].append(state)
 
         return list(partitions.values())
