@@ -35,3 +35,8 @@ def remove_console_handler(logger: logging.Logger, console_handler: logging.Stre
 def remove_file_handler(logger: logging.Logger, file_handler: logging.FileHandler):
     file_handler.close()
     logger.removeHandler(file_handler)
+
+
+def flush_handlers(logger: logging.Logger):
+    for handler in logger.handlers:
+        handler.flush()

@@ -1,4 +1,5 @@
 import pykwl as kwl
+import sys
 
 from collections import defaultdict
 from pathlib import Path
@@ -8,7 +9,7 @@ from itertools import combinations
 from dataclasses import dataclass
 
 from .search_node import SearchNode
-from .logger import initialize_logger, add_console_handler
+from .logger import initialize_logger, add_console_handler, flush_handlers
 from .state_graph import StateGraph
 from .key_to_int import KeyToInt
 from .exact import Driver as ExactDriver, create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
@@ -61,12 +62,14 @@ class Driver:
                 _, _, goal_distances, representatives, search_nodes = exact_driver.run()
             except MemoryError:
                 self._logger.error(f"Out of memory when generating data for problem: {problem_file_path}")
+                flush_handlers(self._logger)
                 continue
 
             if goal_distances is None:
                 continue
 
             self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(representatives)}, #generated nodes = {len(search_nodes)}")
+            flush_handlers(self._logger)
 
             instances.append(InstanceData(i, problem_file_path, goal_distances, representatives, search_nodes))
 
@@ -92,6 +95,7 @@ class Driver:
         print("[Data processing] Number of partitions by num vertices:", len(partitioning_by_num_vertices))
         print("[Data processing] Initial number of states:", initial_number_of_states)
         print("[Data processing] Final number of states:", final_number_of_states)
+        sys.stdout.flush()
 
         return initial_number_of_states, final_number_of_states, partitioning_by_num_vertices
 
@@ -117,11 +121,13 @@ class Driver:
             partition = data[key]
 
             self._logger.info(f"Processing pairs of partition {i} (#vertices in object graph is {key}) with size {len(partition)}")
+            flush_handlers(self._logger)
 
             for (instance_id_1, state_1, v_star_1), (instance_id_2, state_2, v_star_2) in combinations(partition.values(), 2):
 
                 if (count > 0 and count % 10_000 == 0):
                     self._logger.info(f"Finished {count} pairs.")
+                    flush_handlers(self._logger)
 
                 count += 1
 
@@ -158,6 +164,7 @@ class Driver:
                     self._logger.info(f" > Cost 2: {v_star_2}; State 2: {state_2.get_atoms()}")
                     self._logger.info(f" > Color 1: {str(coloring_1)}")
                     self._logger.info(f" > Color 2: {str(coloring_2)}")
+                    flush_handlers(self._logger)
 
                     if k == 2:
                         state_graph_1 = StateGraph(state_1, self._coloring_function)
@@ -181,6 +188,7 @@ class Driver:
         for i, problem_file_path in enumerate(self._problem_file_paths):
             print(f"Problem {i} file:", problem_file_path)
         print()
+        sys.stdout.flush()
 
         self._logger.info("[Nauty] Generating representatives...")
         instances = self._generate_data()
@@ -190,6 +198,7 @@ class Driver:
 
         if not instances:
             self._logger.info(f"[Preprocessing] State spaces are too large. Aborting.")
+            flush_handlers(self._logger)
             return
 
         coloring_function = KeyToInt()
@@ -201,3 +210,4 @@ class Driver:
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
         self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_atoms}]")
         self._logger.info(f"[Results] Table row: [# = {len(instances)}, #P = {final_number_of_states}, #S = {initial_number_of_states}, #C = {total_conflicts[1:]}, #V = {value_conflicts[1:]}, #C/same = {total_conflicts_same_instance[1:]}, #V/same = {value_conflicts_same_instance[1:]}]")
+        flush_handlers(self._logger)
