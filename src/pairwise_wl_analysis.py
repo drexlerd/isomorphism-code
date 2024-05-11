@@ -56,6 +56,13 @@ class Driver:
     def _generate_data(self) -> List[InstanceData]:
         instances = []
 
+        count = 0
+        unique_contents = set()
+        for i, problem_file_path in enumerate(self._problem_file_paths):
+            with open(problem_file_path, "r") as f:
+                unique_contents.add(f.read())
+        print("Num syntactically unique instances:", len(unique_contents), "of", len(self._problem_file_paths))
+
         for i, problem_file_path in enumerate(self._problem_file_paths):
             try:
                 exact_driver = ExactDriver(self._domain_file_path, problem_file_path, "ERROR", False, enable_pruning=self._enable_pruning, max_num_states=self._max_num_states, coloring_function=self._coloring_function)
@@ -142,6 +149,8 @@ class Driver:
                     num_iterations_2, colors_2, counts_2 = wl.compute_coloring(wl_graph_2)
                     coloring_2 = (num_iterations_2, tuple(colors_2), tuple(counts_2))
 
+                    print("Num colors:", wl.get_coloring_function_size())
+
                     if (coloring_1 != coloring_2):
                         break
 
@@ -184,6 +193,7 @@ class Driver:
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
+        print("Hejsan", flush=True)
         print("Domain file:", self._domain_file_path)
         for i, problem_file_path in enumerate(self._problem_file_paths):
             print(f"Problem {i} file:", problem_file_path)
@@ -199,6 +209,7 @@ class Driver:
         if not instances:
             self._logger.info(f"[Preprocessing] State spaces are too large. Aborting.")
             flush_handlers(self._logger)
+            sys.stdout.flush()
             return
 
         coloring_function = KeyToInt()
