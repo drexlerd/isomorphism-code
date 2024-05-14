@@ -115,7 +115,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ['sys.executable', "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--max-num-states", "100000"],
+        [sys.executable, "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -144,7 +144,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ['sys.executable', "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--max-num-states", "100000"],
+        [sys.executable, "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -174,7 +174,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ['sys.executable', "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--ignore-counting", "--max-num-states", "100000"],
+        [sys.executable, "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--ignore-counting", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -203,7 +203,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ['sys.executable', "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--ignore-counting", "--max-num-states", "100000"],
+        [sys.executable, "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--ignore-counting", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
