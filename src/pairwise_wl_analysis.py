@@ -58,9 +58,6 @@ class Driver:
 
         equivalence_class_key_to_i = dict()
 
-        num_pruned_isomorphic_partitions = 0
-        num_pruned_isomorphic_states = 0
-
         for i, problem_file_path in enumerate(self._problem_file_paths):
             try:
                 exact_driver = ExactDriver(self._domain_file_path, problem_file_path, "ERROR", False, enable_pruning=self._enable_pruning, max_num_states=self._max_num_states, coloring_function=self._coloring_function)
@@ -73,24 +70,27 @@ class Driver:
             if goal_distances is None:
                 continue
 
-            ## Prune isomorphic instances
-            if all(equivalence_class_key in equivalence_class_key_to_i for equivalence_class_key in class_representatives.keys()):
-                name = problem_file_path.stem
-                num_states_i = len(search_nodes)
-                num_partitions_i = len(class_representatives)
-                self._logger.info(f"Prune isomorphic instance [{name}] with num states: {num_states_i} and num partitions: {num_partitions_i}")
-                num_pruned_isomorphic_partitions += num_partitions_i
-                num_pruned_isomorphic_states += num_states_i
-                continue
+            ## Prune isomorphic states
+            existing_equivalence_keys = []
+            for equivalence_class_key, state in class_representatives.items():
+                if equivalence_class_key in equivalence_class_key_to_i:
+                    existing_equivalence_keys.append(equivalence_class_key)
+                    try:
+                        del goal_distances[state]
+                    except KeyError:
+                        pass
 
-            for equivalence_class_key in class_representatives.keys():
+            for equivalence_class_key in existing_equivalence_keys:
+                del class_representatives[equivalence_class_key]
+
+            for equivalence_class_key in class_representatives:
                 equivalence_class_key_to_i[equivalence_class_key] = i
 
-            self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(class_representatives)}, #generated nodes = {len(search_nodes)}")
+            self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(class_representatives)}, #generated nodes = {len(search_nodes)}, #isomorphic representatives across instances = {len(existing_equivalence_keys)}")
 
             instances.append(InstanceData(i, problem_file_path, goal_distances, list(class_representatives.values()), search_nodes))
 
-        return instances, num_pruned_isomorphic_partitions, num_pruned_isomorphic_states
+        return instances
 
 
     def _preprocess_data(self, instances: List[InstanceData]) -> Dict[int, Dict[Any, Tuple[State, int]]]:
@@ -199,11 +199,10 @@ class Driver:
         print()
 
         self._logger.info("[Nauty] Generating representatives...")
-        instances, num_pruned_isomorphic_partitions, num_pruned_isomorphic_states = self._generate_data()
+        instances = self._generate_data()
 
         self._logger.info("[Data preprocessing] Preprocessing data...")
         initial_number_of_states, final_number_of_states, partitioning_by_num_vertices = self._preprocess_data(instances)
-        initial_number_of_states += num_pruned_isomorphic_states
         self._logger.info(f"[Data processing] Number of partitions by num vertices: {len(partitioning_by_num_vertices)}")
         self._logger.info(f"[Data processing] Initial number of states: {initial_number_of_states}")
         self._logger.info(f"[Data processing] Final number of states: {final_number_of_states}")
