@@ -114,7 +114,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}"],
+        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--max-num-states", "10000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -143,7 +143,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms"],
+        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--max-num-states", "10000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -173,7 +173,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--ignore-counting"],
+        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--ignore-counting", "--max-num-states", "10000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -202,7 +202,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--ignore-counting"],
+        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--ignore-counting", "--max-num-states", "10000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
