@@ -5,7 +5,7 @@ from pathlib import Path
 from collections import defaultdict, deque
 from typing import Dict
 
-from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator, State
+from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator, State, StateSpace
 from pynauty import Graph as NautyGraph, certificate
 
 from .state_graph import StateGraph
@@ -71,6 +71,10 @@ class Driver:
         problem_parser = ProblemParser(str(self._problem_file_path))
         problem = problem_parser.parse(domain)
         successor_generator = LiftedSuccessorGenerator(problem)
+
+        state_space = StateSpace.new(problem, successor_generator, self._max_num_states)
+        if state_space is None:
+            return [None] * 5
 
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
