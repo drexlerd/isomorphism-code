@@ -161,4 +161,4 @@ class Driver:
         self._logger.info(f"Number of generated states: {len(search_nodes)}")
         self._logger.info(f"Number of equivalence classes: {len(class_representative)}")
 
-        return domain, problem, goal_distances, list(class_representative.values()), search_nodes
+        return domain, problem, goal_distances, class_representative, search_nodes
