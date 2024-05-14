@@ -34,8 +34,8 @@ class InstanceData:
     id: int
     problem_file_path: str
     goal_distances: Dict[State, int]
-    representatives: List[State]
-    search_nodes: Dict[State, SearchNode]
+    class_representatives: Dict[Any, State]
+    num_total_states: int
 
 
 class Driver:
@@ -72,13 +72,9 @@ class Driver:
 
             ## Prune isomorphic states
             existing_equivalence_keys = []
-            for equivalence_class_key, state in class_representatives.items():
+            for equivalence_class_key in class_representatives:
                 if equivalence_class_key in equivalence_class_key_to_i:
                     existing_equivalence_keys.append(equivalence_class_key)
-                    try:
-                        del goal_distances[state]
-                    except KeyError:
-                        pass
 
             for equivalence_class_key in existing_equivalence_keys:
                 del class_representatives[equivalence_class_key]
@@ -88,7 +84,7 @@ class Driver:
 
             self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(class_representatives)}, #generated nodes = {len(search_nodes)}, #isomorphic representatives across instances = {len(existing_equivalence_keys)}")
 
-            instances.append(InstanceData(i, problem_file_path, goal_distances, list(class_representatives.values()), search_nodes))
+            instances.append(InstanceData(i, problem_file_path, goal_distances, class_representatives, len(search_nodes)))
 
         return instances
 
@@ -97,26 +93,23 @@ class Driver:
         partitioning_by_num_vertices = defaultdict(defaultdict)
 
         for instance_id, instance in enumerate(instances):
-            for state, goal_distance in instance.goal_distances.items():
-
-                equivalence_key = instance.search_nodes[state].equivalence_class_key
+            for equivalence_class_key, state in instance.class_representatives.items():
 
                 num_vertices = StateGraph.get_num_vertices(state)
 
-                partitioning_by_num_vertices[num_vertices][equivalence_key] = (instance_id, state, goal_distance)
+                # Deadend states have goal distance infinity represented with -1
+                goal_distance = instance.goal_distances.get(state, -1)
+
+                partitioning_by_num_vertices[num_vertices][equivalence_class_key] = (instance_id, state, goal_distance)
 
 
-        initial_number_of_states = sum(len(instance.search_nodes) for instance in instances)
+        initial_number_of_states = sum(instance.num_total_states for instance in instances)
         final_number_of_states = sum(len(partition) for partition in partitioning_by_num_vertices.values())
 
         return initial_number_of_states, final_number_of_states, partitioning_by_num_vertices
 
 
     def _validate_wl_correctness(self, instances: List[InstanceData], data: Dict[int, Dict[Any, Tuple[State, int]]], to_graph) -> Tuple[bool, int]:
-        # Check whether the to_graph function can handle states of this sort.
-        #for instance in instances:
-        #    if to_graph(instance.representatives[0]) is None: return False, -1, -1
-
         # Test representatives from each partition to see if two are mapped to the same class.
 
         k_max = 2
