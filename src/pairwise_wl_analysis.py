@@ -171,13 +171,10 @@ class Driver:
                     if k == 2:
                         state_graph_1 = StateGraph(state_1, self._coloring_function)
                         state_graph_2 = StateGraph(state_2, self._coloring_function)
-
                         nauty_certificate_1 = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph_1.uvc_graph))
                         equivalence_class_key_1 = (nauty_certificate_1, state_graph_1.uvc_graph.get_color_histogram())
-
                         nauty_certificate_2 = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph_2.uvc_graph))
                         equivalence_class_key_2 = (nauty_certificate_2, state_graph_2.uvc_graph.get_color_histogram())
-
                         assert (equivalence_class_key_1 != equivalence_class_key_2)
 
         return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance

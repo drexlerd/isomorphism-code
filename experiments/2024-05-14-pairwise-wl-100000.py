@@ -32,9 +32,9 @@ NODE = platform.node()
 REMOTE = re.match(r"tetralith\d+.nsc.liu.se|n\d+", NODE)
 if REMOTE:
     ENV = TetralithEnvironment(
-        memory_per_cpu="96G",
+        memory_per_cpu="380G",
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        extra_options="#SBATCH --account=naiss2023-5-314")
+        extra_options="#SBATCH --account=naiss2023-5-314\n#SBATCH -C fat --exclusive")
     SUITE = [
         "barman",
         "blocks_3",
@@ -95,7 +95,7 @@ ATTRIBUTES = [
     Attribute("num_2fwl_total_value_conflicts_same", absolute=True, min_wins=True, scale="linear"),
 ]
 
-MEMORY_LIMIT = 96000
+MEMORY_LIMIT = 380000
 
 # Create a new experiment.
 exp = Experiment(environment=ENV)
@@ -114,7 +114,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--max-num-states", "100000"],
+        ["python", "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -143,7 +143,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--max-num-states", "100000"],
+        ["python", "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -173,7 +173,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--ignore-counting", "--max-num-states", "100000"],
+        ["python", "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--ignore-counting", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -202,7 +202,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_pairwise_wl",
-        ["python", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--ignore-counting", "--max-num-states", "100000"],
+        ["python", "-u", "{main_script}", "pairwise-wl", "--data-path", f"{domain_name}", "--mark-true-goal-atoms", "--ignore-counting", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
