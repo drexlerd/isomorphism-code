@@ -89,7 +89,7 @@ class Driver:
         return instances
 
 
-    def _preprocess_data(self, instances: List[InstanceData]) -> Dict[int, Dict[Any, Tuple[State, int]]]:
+    def _preprocess_data(self, instances: List[InstanceData]) -> Dict[int, Dict[Any, Tuple[int, State, int]]]:
         partitioning_by_num_vertices = defaultdict(defaultdict)
 
         for instance_id, instance in enumerate(instances):
@@ -109,7 +109,72 @@ class Driver:
         return initial_number_of_states, final_number_of_states, partitioning_by_num_vertices
 
 
-    def _validate_wl_correctness(self, instances: List[InstanceData], data: Dict[int, Dict[Any, Tuple[State, int]]], to_graph) -> Tuple[bool, int]:
+    def _validate_wl_correctness_recursively(self, k, num_iterations: int, instances: List[InstanceData], partition: List[Tuple[int, State, int]], to_graph):
+        total_conflicts = 0
+        value_conflicts = 0
+        total_conflicts_same_instance = 0
+        value_conflicts_same_instance = 0
+
+        # 1. Instantiate 1-WL
+        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
+
+        # 2. Compute repartitioning
+        partioning = defaultdict(list)
+        is_stable_state = dict()
+        for (instance_id, state, v_star) in partition:
+            wl_graph = to_graph(state)
+            is_stable, num_iterations, colors, counts = wl.compute_coloring(wl_graph, num_iterations)
+            coloring = (num_iterations, tuple(colors), tuple(counts))
+            partioning[coloring].append((instance_id, state, v_star))
+            is_stable_state[state] = is_stable
+
+        # 3. Recursively refine partitions
+        max_num_iterations = 0
+        for coloring, sub_partition in partioning.items():
+            # Base case 1: all colors in the partition are stable
+            if all(is_stable_state[state] for _, state, _ in sub_partition):
+
+                max_num_iterations = max(max_num_iterations, num_iterations)
+
+                if len(sub_partition) > 1:
+
+                    self._logger.info(f" > Color: {str(coloring)}")
+                    self._logger.info(f" > Goal: {state.get_problem().goal}")
+
+                    for (instance_id_1, state_1, v_star_1), (instance_id_2, state_2, v_star_2) in combinations(sub_partition, 2):
+
+                        total_conflicts += 1
+                        if instance_id_1 == instance_id_2:
+                            total_conflicts_same_instance += 1
+                        if v_star_1 != v_star_2:
+                            value_conflicts += 1
+                            if instance_id_1 == instance_id_2:
+                                value_conflicts_same_instance += 1
+                            self._logger.info(f"[{k}-FWL] Value conflict!")
+                        else:
+                            self._logger.info(f"[{k}-FWL] Conflict!")
+
+                        self._logger.info(f" > Instance 1: {instances[instance_id_1].problem_file_path}")
+                        self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
+                        self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.get_atoms()}")
+                        self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.get_atoms()}")
+
+                continue
+
+            total_conflicts_i, value_conflicts_i, total_conflicts_same_instance_i, value_conflicts_same_instance_i, max_num_iterations_i = self._validate_wl_correctness_recursively(k, num_iterations+1, instances, sub_partition, to_graph)
+
+            total_conflicts += total_conflicts_i
+            value_conflicts += value_conflicts_i
+            total_conflicts_same_instance += total_conflicts_same_instance_i
+            value_conflicts_same_instance += value_conflicts_same_instance_i
+            max_num_iterations = max(max_num_iterations, max_num_iterations_i)
+
+        # self._logger.info(f"Finished partition with color function size {wl.get_coloring_function_size()}")
+
+        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance, max_num_iterations
+
+
+    def _validate_wl_correctness(self, instances: List[InstanceData], data: Dict[int, Dict[Any, Tuple[int, State, int]]], to_graph) -> Tuple[bool, int]:
         # Test representatives from each partition to see if two are mapped to the same class.
 
         k_max = 2
@@ -120,64 +185,40 @@ class Driver:
         total_conflicts_same_instance = [0] * (k_max + 1)
         value_conflicts_same_instance = [0] * (k_max + 1)
 
-        count = 0
+        max_num_iterations = [0] * (k_max + 1)
 
+        candidate_partitions = []
         for i, key in enumerate(sorted(data.keys())):
             partition = data[key]
+            candidate_partitions.append(list(partition.values()))
 
-            self._logger.info(f"Processing pairs of partition {i} (#vertices in object graph is {key}) with size {len(partition)}")
+        for k in range(1, 3):
 
-            for (instance_id_1, state_1, v_star_1), (instance_id_2, state_2, v_star_2) in combinations(partition.values(), 2):
+            next_candidate_partitions = []
 
-                if (count > 0 and count % 100_000 == 0):
-                    self._logger.info(f"Finished {count} pairs.")
+            for i, partition in enumerate(candidate_partitions):
 
-                count += 1
+                self._logger.info(f"Processing pairs of partition {i} with size {len(partition)}")
 
-                for k in range(1, k_max + 1):
-                    wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
+                total_conflicts_i, value_conflicts_i, total_conflicts_same_instance_i, value_conflicts_same_instance_i, max_num_iterations_i = self._validate_wl_correctness_recursively(k, 1, instances, partition, to_graph)
 
-                    wl_graph_1 = to_graph(state_1)
-                    num_iterations_1, colors_1, counts_1 = wl.compute_coloring(wl_graph_1)
-                    coloring_1 = (num_iterations_1, tuple(colors_1), tuple(counts_1))
+                total_conflicts[k] += total_conflicts_i
+                value_conflicts[k] += value_conflicts_i
+                total_conflicts_same_instance[k] += total_conflicts_same_instance_i
+                value_conflicts_same_instance[k] += value_conflicts_same_instance_i
+                max_num_iterations[k] = max(max_num_iterations[k], max_num_iterations_i)
 
-                    wl_graph_2 = to_graph(state_2)
-                    num_iterations_2, colors_2, counts_2 = wl.compute_coloring(wl_graph_2)
-                    coloring_2 = (num_iterations_2, tuple(colors_2), tuple(counts_2))
+                if total_conflicts_i != 0 or value_conflicts_i != 0:
+                    next_candidate_partitions.append(partition)
 
-                    if (coloring_1 != coloring_2):
-                        break
+            self._logger.info(f"[{k}-WL] #C = {total_conflicts[k]}, #V = {value_conflicts[k]}, #C/same = {total_conflicts_same_instance[k]}, #V/same = {value_conflicts_same_instance[k]}]")
 
-                    total_conflicts[k] += 1
-                    if instance_id_1 == instance_id_2:
-                        total_conflicts_same_instance[k] += 1
-                    if v_star_1 != v_star_2:
-                        value_conflicts[k] += 1
-                        if instance_id_1 == instance_id_2:
-                            value_conflicts_same_instance[k] += 1
-                        self._logger.info(f"[{k}-FWL] Value conflict!")
-                    else:
-                        self._logger.info(f"[{k}-FWL] Conflict!")
+            if not next_candidate_partitions:
+                break
 
-                    self._logger.info(f" > Instance 1: {instances[instance_id_1].problem_file_path}")
-                    self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
-                    self._logger.info(f" > Goal 1: {state_1.get_problem().goal}")
-                    self._logger.info(f" > Goal 2: {state_2.get_problem().goal}")
-                    self._logger.info(f" > Cost 1: {v_star_1}; State 1: {state_1.get_atoms()}")
-                    self._logger.info(f" > Cost 2: {v_star_2}; State 2: {state_2.get_atoms()}")
-                    self._logger.info(f" > Color 1: {str(coloring_1)}")
-                    self._logger.info(f" > Color 2: {str(coloring_2)}")
+            candidate_partitions = next_candidate_partitions
 
-                    if k == 2:
-                        state_graph_1 = StateGraph(state_1, self._coloring_function)
-                        state_graph_2 = StateGraph(state_2, self._coloring_function)
-                        nauty_certificate_1 = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph_1.uvc_graph))
-                        equivalence_class_key_1 = (nauty_certificate_1, state_graph_1.uvc_graph.get_color_histogram())
-                        nauty_certificate_2 = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph_2.uvc_graph))
-                        equivalence_class_key_2 = (nauty_certificate_2, state_graph_2.uvc_graph.get_color_histogram())
-                        assert (equivalence_class_key_1 != equivalence_class_key_2)
-
-        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance
+        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance, max_num_iterations
 
 
     def run(self):
@@ -204,9 +245,9 @@ class Driver:
         coloring_function = KeyToInt()
 
         self._logger.info("[WL] Run validation...")
-        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_wl_correctness(instances, partitioning_by_num_vertices, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms))
+        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance, max_num_iterations = self._validate_wl_correctness(instances, partitioning_by_num_vertices, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms))
 
         self._logger.info("[Results] Ran to completion.")
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
         self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_atoms}]")
-        self._logger.info(f"[Results] Table row: [# = {len(instances)}, #P = {final_number_of_states}, #S = {initial_number_of_states}, #C = {total_conflicts[1:]}, #V = {value_conflicts[1:]}, #C/same = {total_conflicts_same_instance[1:]}, #V/same = {value_conflicts_same_instance[1:]}]")
+        self._logger.info(f"[Results] Table row: [# = {len(instances)}, #P = {final_number_of_states}, #S = {initial_number_of_states}, #I = {max_num_iterations[1:]}, #C = {total_conflicts[1:]}, #V = {value_conflicts[1:]}, #C/same = {total_conflicts_same_instance[1:]}, #V/same = {value_conflicts_same_instance[1:]}]")
