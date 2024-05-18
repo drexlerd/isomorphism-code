@@ -34,7 +34,7 @@ REMOTE = re.match(r"tetralith\d+.nsc.liu.se|n\d+", NODE)
 if REMOTE:
     ENV = TetralithEnvironment(
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        memory_per_cpu="380G",
+        memory_per_cpu="370G",
         cpus_per_task=1,
         extra_options="#SBATCH --account=naiss2023-5-314\n#SBATCH -C fat --exclusive")
     SUITE = [
