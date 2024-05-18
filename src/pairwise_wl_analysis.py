@@ -109,30 +109,79 @@ class Driver:
         return initial_number_of_states, final_number_of_states, partitioning_by_num_vertices
 
 
-    def _validate_wl_correctness_recursively(self, k, num_iterations: int, instances: List[InstanceData], partition: List[Tuple[int, State, int]], to_graph):
+    def _validate_wl_correctness_recursively(self, k, instances: List[InstanceData], partition: List[Tuple[int, State, int, kwl.Graph, kwl.GraphColoring, kwl.GraphColoring]]):
         total_conflicts = 0
         value_conflicts = 0
         total_conflicts_same_instance = 0
         value_conflicts_same_instance = 0
-
-        # 1. Instantiate 1-WL
         wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
 
-        # 2. Compute repartitioning
-        partioning = defaultdict(list)
-        is_stable_state = dict()
-        for (instance_id, state, v_star) in partition:
-            wl_graph = to_graph(state)
-            is_stable, num_iterations, colors, counts = wl.compute_coloring(wl_graph, num_iterations)
-            coloring = (num_iterations, tuple(colors), tuple(counts))
-            partioning[coloring].append((instance_id, state, v_star))
-            is_stable_state[state] = is_stable
+        # Note: we test for base case before the recursive call.
 
-        # 3. Recursively refine partitions
+        # 1. Conquer: Compute repartitioning
+
+        # 1.1 Run 1-WL until colors start divering
+        is_stable_state = dict()
+        for (instance_id, state, v_star, wl_graph, current_coloring, next_coloring) in partition:
+            is_stable_state[state] = False
+
+        num_iterations = 0
+
+        colorings = set()
+
+        colorings_by_state = dict()
+
+        while True:
+            all_stable = True
+
+            next_partition = []
+            for (instance_id, state, v_star, wl_graph, current_coloring, next_coloring) in partition:
+
+                if is_stable_state[state]:
+                    next_partition.append((instance_id, state, v_star, wl_graph, current_coloring, next_coloring))
+                    continue
+
+                is_stable = wl.compute_next_coloring(wl_graph, current_coloring, next_coloring)
+
+                if is_stable:
+                    is_stable_state[state] = True
+                else:
+                    all_stable = False
+
+                colors, counts = next_coloring.get_frequencies()
+                coloring = (num_iterations, tuple(colors), tuple(counts))
+                colorings.add(coloring)
+                colorings_by_state[state] = coloring
+
+                next_partition.append((instance_id, state, v_star, wl_graph, next_coloring, current_coloring))
+
+            partition = next_partition
+
+            if len(colorings) > 1:
+                # Detected diverging state colorings
+                break
+
+            if all_stable:
+                # All are stable
+                break
+
+            num_iterations += 1
+
+        # 1.2 Compute the new partitioning
+        partitioning = defaultdict(list)
+        for (instance_id, state, v_star, wl_graph, current_coloring, next_coloring) in partition:
+            coloring = colorings_by_state[state]
+
+            partitioning[coloring].append((instance_id, state, v_star, wl_graph, current_coloring, next_coloring))
+
+        # 2. Recursively refine new partitioning
         max_num_iterations = 0
-        for coloring, sub_partition in partioning.items():
-            # Base case 1: all colors in the partition are stable
-            if all(is_stable_state[state] for _, state, _ in sub_partition):
+        for coloring, sub_partition in partitioning.items():
+            if len(sub_partition) == 1:
+                # Base case 1: partition is singleton set. There cannot be any conflicts.
+                pass
+            elif all(is_stable_state[state] for _, state, _, _, _, _ in sub_partition):
+                # Base case 2: all colors in the partition are stable
 
                 max_num_iterations = max(max_num_iterations, num_iterations)
 
@@ -141,7 +190,7 @@ class Driver:
                     self._logger.info(f" > Color: {str(coloring)}")
                     self._logger.info(f" > Goal: {state.get_problem().goal}")
 
-                    for (instance_id_1, state_1, v_star_1), (instance_id_2, state_2, v_star_2) in combinations(sub_partition, 2):
+                    for (instance_id_1, state_1, v_star_1, _, _, _), (instance_id_2, state_2, v_star_2, _, _, _) in combinations(sub_partition, 2):
 
                         total_conflicts += 1
                         if instance_id_1 == instance_id_2:
@@ -159,19 +208,22 @@ class Driver:
                         self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.get_atoms()}")
                         self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.get_atoms()}")
 
-                continue
+            else:
+                # Inductive case
 
-            total_conflicts_i, value_conflicts_i, total_conflicts_same_instance_i, value_conflicts_same_instance_i, max_num_iterations_i = self._validate_wl_correctness_recursively(k, num_iterations+1, instances, sub_partition, to_graph)
+                total_conflicts_i, value_conflicts_i, total_conflicts_same_instance_i, value_conflicts_same_instance_i, max_num_iterations_i = self._validate_wl_correctness_recursively(k, instances, sub_partition)
 
-            total_conflicts += total_conflicts_i
-            value_conflicts += value_conflicts_i
-            total_conflicts_same_instance += total_conflicts_same_instance_i
-            value_conflicts_same_instance += value_conflicts_same_instance_i
-            max_num_iterations = max(max_num_iterations, max_num_iterations_i)
+                total_conflicts += total_conflicts_i
+                value_conflicts += value_conflicts_i
+                total_conflicts_same_instance += total_conflicts_same_instance_i
+                value_conflicts_same_instance += value_conflicts_same_instance_i
+                max_num_iterations = max(max_num_iterations, max_num_iterations_i)
 
         # self._logger.info(f"Finished partition with color function size {wl.get_coloring_function_size()}")
 
-        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance, max_num_iterations
+        num_iterations += max_num_iterations
+
+        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance, num_iterations
 
 
     def _validate_wl_correctness(self, instances: List[InstanceData], data: Dict[int, Dict[Any, Tuple[int, State, int]]], to_graph) -> Tuple[bool, int]:
@@ -200,7 +252,18 @@ class Driver:
 
                 self._logger.info(f"Processing pairs of partition {i} with size {len(partition)}")
 
-                total_conflicts_i, value_conflicts_i, total_conflicts_same_instance_i, value_conflicts_same_instance_i, max_num_iterations_i = self._validate_wl_correctness_recursively(k, 1, instances, partition, to_graph)
+                # Extend partition by graph and graph colorings
+                partition_ext = []
+                # Use empty kwl just to allocate initialized GraphColorings
+                wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
+                for instance_id, state, v_star in partition:
+                    wl_graph = to_graph(state)
+                    current_coloring = wl.compute_initial_coloring(wl_graph)
+                    # We only care data compatibility between current and next coloring, so we can call compute_initial_coloring again.
+                    next_coloring = wl.compute_initial_coloring(wl_graph)
+                    partition_ext.append((instance_id, state, v_star, wl_graph, current_coloring, next_coloring))
+
+                total_conflicts_i, value_conflicts_i, total_conflicts_same_instance_i, value_conflicts_same_instance_i, max_num_iterations_i = self._validate_wl_correctness_recursively(k, instances, partition_ext)
 
                 total_conflicts[k] += total_conflicts_i
                 value_conflicts[k] += value_conflicts_i
