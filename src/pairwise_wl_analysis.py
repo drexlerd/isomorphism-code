@@ -134,6 +134,8 @@ class Driver:
         while True:
             all_stable = True
 
+            num_iterations += 1
+
             next_partition = []
             for (instance_id, state, v_star, wl_graph, current_coloring, next_coloring) in partition:
 
@@ -164,8 +166,6 @@ class Driver:
             if all_stable:
                 # All are stable
                 break
-
-            num_iterations += 1
 
         # 1.2 Compute the new partitioning
         partitioning = defaultdict(list)

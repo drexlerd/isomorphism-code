@@ -85,6 +85,8 @@ ATTRIBUTES = [
     Attribute("num_instances", absolute=True, min_wins=False, scale="linear"),
     Attribute("num_final_states", absolute=True, min_wins=False, scale="linear"),
     Attribute("num_total_states", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_1fwl_iterations", absolute=True, min_wins=False, scale="linear"),
+    Attribute("num_2fwl_iterations", absolute=True, min_wins=False, scale="linear"),
     Attribute("num_1fwl_total_conflicts", absolute=True, min_wins=False, scale="linear"),
     Attribute("num_2fwl_total_conflicts", absolute=True, min_wins=False, scale="linear"),
     Attribute("num_1fwl_total_value_conflicts", absolute=True, min_wins=True, scale="linear"),
