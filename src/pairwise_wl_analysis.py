@@ -8,7 +8,8 @@ from typing import List, Tuple, Union, Dict, Any, Deque
 from itertools import combinations
 from dataclasses import dataclass
 
-from .search_node import SearchNode
+
+from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
 from .key_to_int import KeyToInt
@@ -319,3 +320,4 @@ class Driver:
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
         self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_atoms}]")
         self._logger.info(f"[Results] Table row: [# = {len(instances)}, #P = {final_number_of_states}, #S = {initial_number_of_states}, #I = {max_num_iterations[1:]}, #C = {total_conflicts[1:]}, #V = {value_conflicts[1:]}, #C/same = {total_conflicts_same_instance[1:]}, #V/same = {value_conflicts_same_instance[1:]}]")
+        self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")
