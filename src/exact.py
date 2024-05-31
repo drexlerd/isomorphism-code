@@ -32,6 +32,7 @@ def create_pynauty_undirected_vertex_colored_graph(state_graph: StateGraph, init
             directed=False,
             adjacency_dict=adjacency_dict,
             vertex_coloring=vertex_coloring)
+        print(graph)
         return graph
 
 def compute_nauty_certificate(nauty_graph: NautyGraph):
@@ -161,8 +162,6 @@ class Driver:
 
                 goal_distances[pre_state] = goal_distances[cur_state] + 1
                 queue.append(pre_state)
-
-
 
         end_time = time.time()
         runtime = end_time - start_time
