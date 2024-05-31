@@ -2,7 +2,7 @@ from pymimir import State
 
 from typing import List, Union, Tuple
 
-from .key_to_int import KeyToInt
+from .color_function import ColorFunction
 
 
 class Vertex:
@@ -13,12 +13,15 @@ class Vertex:
         # Incoming neighbours
         self._V_in : List[Vertex] = []
 
-    def get_canonical_labelling(self, color_function: KeyToInt) -> Tuple[Tuple[int], Tuple[int], Tuple[int]]:
+    def get_canonical_labelling(self, color_function: ColorFunction) -> Tuple[Tuple[int], Tuple[int], Tuple[int]]:
         """ Recursively compute a canonical labelling of the vertex and its direct neighbourhood.
         """
-        return (tuple(sorted(color_function.get_int_from_key(label) for label in self._labels)),
-                tuple(sorted(tuple(sorted(color_function.get_int_from_key(label) for label in vertex._labels)) for vertex in self._V_out)),
-                tuple(sorted(tuple(sorted(color_function.get_int_from_key(label) for label in vertex._labels)) for vertex in self._V_in)),)
+        print((tuple(sorted(color_function.get_color_from_domain_label(label) for label in self._labels)),
+                tuple(sorted(tuple(sorted(color_function.get_color_from_domain_label(label) for label in vertex._labels)) for vertex in self._V_out)),
+                tuple(sorted(tuple(sorted(color_function.get_color_from_domain_label(label) for label in vertex._labels)) for vertex in self._V_in)),))
+        return (tuple(sorted(color_function.get_color_from_domain_label(label) for label in self._labels)),
+                tuple(sorted(tuple(sorted(color_function.get_color_from_domain_label(label) for label in vertex._labels)) for vertex in self._V_out)),
+                tuple(sorted(tuple(sorted(color_function.get_color_from_domain_label(label) for label in vertex._labels)) for vertex in self._V_in)),)
 
 
 class StateGraph:
@@ -26,7 +29,7 @@ class StateGraph:
     In this version, we give all vertices the same color
     and encode type information using loop edges
     """
-    def __init__(self, state : State, coloring_function: KeyToInt, mark_true_goal_atoms : bool = False):
+    def __init__(self, state : State, coloring_function: ColorFunction, mark_true_goal_atoms : bool = False):
         self._state = state
         self._coloring_function = coloring_function
         self._mark_true_goal_atoms = mark_true_goal_atoms
@@ -80,8 +83,8 @@ class StateGraph:
             vertex._V_in = [self._vertices[i] for i in self._ingoing_vertices[vertex_id]]
             vertex._V_out = [self._vertices[i] for i in self._outgoing_vertices[vertex_id]]
 
-    def compute_initial_coloring(self, color_function: KeyToInt) -> Tuple[int]:
+    def compute_initial_coloring(self, color_function: ColorFunction) -> Tuple[int]:
         """ Return a canonical initial coloring of the graph
         taking into account the direct neighbourhood information.
         """
-        return tuple(color_function.get_int_from_key(vertex.get_canonical_labelling(color_function)) for vertex in self._vertices)
+        return tuple(color_function.get_color_from_aggregate_label(vertex.get_canonical_labelling(color_function)) for vertex in self._vertices)

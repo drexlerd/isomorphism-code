@@ -11,16 +11,19 @@ from pynauty import Graph as NautyGraph, certificate
 from .state_graph import StateGraph
 from .logger import initialize_logger, add_console_handler
 from .search_node import SearchNode
-from .key_to_int import KeyToInt
+from .color_function import ColorFunction
 from .uvc_graph import UVCGraph
 
 
 def create_pynauty_undirected_vertex_colored_graph(state_graph: StateGraph, initial_coloring: Tuple[int]) -> NautyGraph:
+        ### TODO: we have to sort vertices according to color, then we can create correct color partition.
         # Compute adjacency dict
         adjacency_dict = defaultdict(set)
         for vertex_id in range(len(state_graph._vertices)):
             adjacency_dict[vertex_id] = set(state_graph._outgoing_vertices[vertex_id])
         # Compute vertex partitioning
+        print(state_graph._state.get_atoms())
+        print(initial_coloring)
         color_to_vertices = defaultdict(set)
         for vertex_id in range(len(state_graph._vertices)):
             color_to_vertices[initial_coloring[vertex_id]].add(vertex_id)
@@ -32,7 +35,9 @@ def create_pynauty_undirected_vertex_colored_graph(state_graph: StateGraph, init
             directed=False,
             adjacency_dict=adjacency_dict,
             vertex_coloring=vertex_coloring)
-        print(graph)
+
+        # print(str(graph))
+
         return graph
 
 def compute_nauty_certificate(nauty_graph: NautyGraph):
@@ -42,13 +47,18 @@ logger = initialize_logger("exact")
 add_console_handler(logger)
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int, coloring_function: KeyToInt = None):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int, coloring_function : ColorFunction = None):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
         self._enable_pruning = enable_pruning
         self._max_num_states = max_num_states
-        self._coloring_function = coloring_function if coloring_function is not None else KeyToInt()
+        self._coloring_function = coloring_function
+
+        if self._coloring_function is None:
+            domain_parser = DomainParser(str(self._domain_file_path))
+            self._domain = domain_parser.parse()
+            self._coloring_function = ColorFunction(self._domain)
 
         global logger
         logger.setLevel(verbosity)

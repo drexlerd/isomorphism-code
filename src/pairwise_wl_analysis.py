@@ -12,11 +12,11 @@ from dataclasses import dataclass
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
-from .key_to_int import KeyToInt
+from .color_function import ColorFunction
 from .exact import Driver as ExactDriver, create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
 
 
-def to_uvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
+def to_uvc_graph(state: State, coloring_function : ColorFunction, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
     state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
     initial_coloring = state_graph.compute_initial_coloring(coloring_function)
     # remap colors to obtain canonical surjective l={1,...,n}
@@ -48,7 +48,9 @@ class Driver:
     def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, ignore_counting: bool, mark_true_goal_atoms: bool):
         self._domain_file_path = (data_path / "domain.pddl").resolve()
         self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
-        self._coloring_function = KeyToInt()
+        domain_parser = DomainParser(str(self._domain_file_path))
+        self._domain = domain_parser.parse()
+        self._coloring_function = ColorFunction(self._domain)
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
@@ -91,6 +93,8 @@ class Driver:
             self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(class_representatives)}, #generated nodes = {len(search_nodes)}, #isomorphic representatives across instances = {len(existing_equivalence_keys)}")
 
             instances.append(InstanceData(i, problem_file_path, goal_distances, class_representatives, len(search_nodes)))
+            print("=========================================================")
+        exit(1)
 
         return instances
 
@@ -98,15 +102,12 @@ class Driver:
     def _preprocess_data(self, instances: List[InstanceData]) -> Dict[int, Dict[Any, Tuple[int, State, int]]]:
         partitioning_by_canonical_initial_coloring = defaultdict(defaultdict)
 
-        # Initialize coloring function
-        coloring_function = KeyToInt()
-
         for instance_id, instance in enumerate(instances):
             for equivalence_class_key, state in instance.class_representatives.items():
 
-                state_graph = StateGraph(state, coloring_function)
+                state_graph = StateGraph(state, self._coloring_function)
 
-                canonical_initial_coloring = tuple(sorted(state_graph.compute_initial_coloring(coloring_function)))
+                canonical_initial_coloring = tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function)))
 
                 # Deadend states have goal distance infinity represented with -1
                 goal_distance = instance.goal_distances.get(state, -1)
@@ -124,15 +125,13 @@ class Driver:
         total_conflicts_same_instance = 0
         value_conflicts_same_instance = 0
 
-        coloring_function = KeyToInt()
-
         for num_vertices, partition in partitioning.items():
 
             histogram_to_datas = defaultdict(list)
 
             for certificate, (instance_id, state, v_star) in partition.items():
 
-                wl_graph = to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms)
+                wl_graph = to_uvc_graph(state, self._coloring_function, self._mark_true_goal_atoms)
 
                 histogram = tuple(kwl.CanonicalColorRefinement.histogram(kwl.CanonicalColorRefinement(False).calculate(wl_graph)))
 

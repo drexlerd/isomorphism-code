@@ -8,7 +8,7 @@ from typing import List, Tuple, Union
 
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
-from .key_to_int import KeyToInt
+from .color_function import KeyToInt
 from .exact import create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
 
 
