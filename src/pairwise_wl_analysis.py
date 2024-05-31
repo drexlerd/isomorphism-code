@@ -16,18 +16,63 @@ from .key_to_int import KeyToInt
 from .exact import Driver as ExactDriver, create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
 
 
-def to_uvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.Graph:
+def to_uvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
     state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
     uvc_vertices = state_graph.uvc_graph.vertices
     uvc_edges = state_graph.uvc_graph.adj_list
     to_wl_vertex = {}
-    wl_graph = kwl.Graph(False)
+    # state uvc already has antiparallel edges. Hence, we set directed to True here
+    wl_graph = kwl.EdgeColoredGraph(True)
     for vertex_id, vertex_data in uvc_vertices.items():
         to_wl_vertex[vertex_id] = wl_graph.add_node(vertex_data.color.value)
     for vertex_id, adjacent_ids in uvc_edges.items():
         for adjacent_id in adjacent_ids:
+            print(vertex_id, adjacent_id)
             wl_graph.add_edge(to_wl_vertex[vertex_id], to_wl_vertex[adjacent_id])
     return wl_graph
+
+
+def to_uvc_graph2(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
+    state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
+    uvc_vertices = state_graph.uvc_graph.vertices
+    uvc_edges = state_graph.uvc_graph.adj_list
+    to_wl_vertex = {}
+    # remap colors to obtain canonical surjective l={1,...,n}
+    sorted_color_values = sorted(vertex_data.color.value for vertex_data in uvc_vertices.values())
+    color_remap = dict()
+    for color_value in sorted_color_values:
+        if color_value not in color_remap:
+            color_remap[color_value] = len(color_remap)
+    # state uvc already has antiparallel edges. Hence, we set directed to True here
+    wl_graph = kwl.EdgeColoredGraph(True)
+    for vertex_id, vertex_data in uvc_vertices.items():
+        to_wl_vertex[vertex_id] = wl_graph.add_node(color_remap[vertex_data.color.value] + 1)
+    for vertex_id, adjacent_ids in uvc_edges.items():
+        for adjacent_id in adjacent_ids:
+            wl_graph.add_edge(to_wl_vertex[vertex_id], to_wl_vertex[adjacent_id])
+    return wl_graph
+
+
+def to_dvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
+    state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
+    uvc_vertices = state_graph.dvc_graph.vertices
+    uvc_edges = state_graph.dvc_graph.adj_list
+    to_wl_vertex = {}
+    # remap colors to obtain canonical surjective l={1,...,n}
+    sorted_color_values = sorted(vertex_data.color.value for vertex_data in uvc_vertices.values())
+    color_remap = dict()
+    for color_value in sorted_color_values:
+        if color_value not in color_remap:
+            color_remap[color_value] = len(color_remap)
+    # state uvc already has antiparallel edges. Hence, we set directed to True here
+    wl_graph = kwl.EdgeColoredGraph(True)
+    for vertex_id, vertex_data in uvc_vertices.items():
+        to_wl_vertex[vertex_id] = wl_graph.add_node(color_remap[vertex_data.color.value] + 1)
+    for vertex_id, adjacent_ids in uvc_edges.items():
+        for adjacent_id in adjacent_ids:
+            wl_graph.add_edge(to_wl_vertex[vertex_id], to_wl_vertex[adjacent_id])
+    return wl_graph
+
 
 
 @dataclass
@@ -93,24 +138,73 @@ class Driver:
     def _preprocess_data(self, instances: List[InstanceData]) -> Dict[int, Dict[Any, Tuple[int, State, int]]]:
         partitioning_by_num_vertices = defaultdict(defaultdict)
 
+        # Initialize coloring function
+        coloring_function = KeyToInt()
+
         for instance_id, instance in enumerate(instances):
             for equivalence_class_key, state in instance.class_representatives.items():
 
                 num_vertices = StateGraph.get_num_vertices(state)
 
+                state_graph = StateGraph(state, coloring_function)
+                canonical_color_multiset = state_graph.dvc_graph.get_canonical_color_multiset()
+
                 # Deadend states have goal distance infinity represented with -1
                 goal_distance = instance.goal_distances.get(state, -1)
 
-                partitioning_by_num_vertices[num_vertices][equivalence_class_key] = (instance_id, state, goal_distance)
-
+                partitioning_by_num_vertices[(num_vertices, canonical_color_multiset)][equivalence_class_key] = (instance_id, state, goal_distance)
 
         initial_number_of_states = sum(instance.num_total_states for instance in instances)
         final_number_of_states = sum(len(partition) for partition in partitioning_by_num_vertices.values())
 
         return initial_number_of_states, final_number_of_states, partitioning_by_num_vertices
 
+    def _validate_1_wl_correctness(self, instances: List[InstanceData], partitioning: Dict[int, Dict[Any, Tuple[int, State, int]]]):
+        total_conflicts = 0
+        value_conflicts = 0
+        total_conflicts_same_instance = 0
+        value_conflicts_same_instance = 0
 
-    def _validate_wl_correctness_iteratively(self, k, instances: List[InstanceData], partition: List[Tuple[int, State, int, kwl.Graph, kwl.GraphColoring, kwl.GraphColoring]]):
+        coloring_function = KeyToInt()
+
+        for num_vertices, partition in partitioning.items():
+
+            histogram_to_datas = defaultdict(list)
+
+            for certificate, (instance_id, state, v_star) in partition.items():
+                # wl_graph = to_uvc_graph2(state, coloring_function, self._mark_true_goal_atoms)
+                wl_graph = to_dvc_graph(state, coloring_function, self._mark_true_goal_atoms)
+
+                immutable_cep = tuple(tuple(partition) for partition in kwl.CanonicalColorRefinement(False).calculate(wl_graph))
+
+                histogram_to_datas[immutable_cep].append((instance_id, state, v_star, wl_graph))
+
+
+            for _, datas in histogram_to_datas.items():
+                for (instance_id_1, state_1, v_star_1, wl_graph_1), (instance_id_2, state_2, v_star_2, wl_graph_2) in combinations(datas, 2):
+
+                    total_conflicts += 1
+                    if instance_id_1 == instance_id_2:
+                        total_conflicts_same_instance += 1
+                    if v_star_1 != v_star_2:
+                        value_conflicts += 1
+                        if instance_id_1 == instance_id_2:
+                            value_conflicts_same_instance += 1
+                        self._logger.info(f"[CanonicalColorRefinement] Value conflict!")
+                    else:
+                        self._logger.info(f"[CanonicalColorRefinement] Conflict!")
+
+                    self._logger.info(f" > Instance 1: {instances[instance_id_1].problem_file_path}")
+                    self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
+                    self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.get_atoms()}")
+                    self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.get_atoms()}")
+                    print(wl_graph_1)
+                    print(wl_graph_2)
+
+        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance
+
+
+    def _validate_wl_correctness_iteratively(self, k, instances: List[InstanceData], partition: List[Tuple[int, State, int, kwl.EdgeColoredGraph, kwl.GraphColoring, kwl.GraphColoring]]):
         """ The idea of the iterative solution is to run a standard DFS.
             Each node gets it own instantiation of WL because the colors in such a partition are identical.
         """
@@ -124,7 +218,7 @@ class Driver:
         @dataclass
         class SearchNode:
             wl : kwl.WeisfeilerLeman
-            partition: List[Tuple[int, State, int, kwl.Graph, kwl.GraphColoring, kwl.GraphColoring]]
+            partition: List[Tuple[int, State, int, kwl.EdgeColoredGraph, kwl.GraphColoring, kwl.GraphColoring]]
             num_previous_iterations: int
 
         queue : Deque[SearchNode] = deque()
@@ -311,13 +405,11 @@ class Driver:
             self._logger.info(f"[Preprocessing] State spaces are too large. Aborting.")
             return
 
-        coloring_function = KeyToInt()
-
         self._logger.info("[WL] Run validation...")
-        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance, max_num_iterations = self._validate_wl_correctness(instances, partitioning_by_num_vertices, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms))
+        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_1_wl_correctness(instances, partitioning_by_num_vertices)
 
         self._logger.info("[Results] Ran to completion.")
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
         self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_atoms}]")
-        self._logger.info(f"[Results] Table row: [# = {len(instances)}, #P = {final_number_of_states}, #S = {initial_number_of_states}, #I = {max_num_iterations[1:]}, #C = {total_conflicts[1:]}, #V = {value_conflicts[1:]}, #C/same = {total_conflicts_same_instance[1:]}, #V/same = {value_conflicts_same_instance[1:]}]")
+        self._logger.info(f"[Results] Table row: [# = {len(instances)}, #P = {final_number_of_states}, #S = {initial_number_of_states}, #C = {total_conflicts}, #V = {value_conflicts}, #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
         self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")

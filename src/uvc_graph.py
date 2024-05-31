@@ -37,6 +37,9 @@ class UVCGraph:
         self._vertices: Dict[int, UVCVertex] = dict()
         self._adj_list: Dict[int, MutableSet[int]] = dict()
 
+    def get_canonical_color_multiset(self):
+        return tuple(sorted([vertex.color.value for vertex in self._vertices.values()]))
+
     def add_vertex(self, vertex : UVCVertex):
         """ Add a vertex *uniquely* to the graph.
         """

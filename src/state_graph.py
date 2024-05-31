@@ -1,11 +1,24 @@
-from pymimir import State, Problem
+from pymimir import State
 
-from typing import List, MutableSet
-from collections import defaultdict
+from typing import List, Union, Tuple
 
-from .color import Color
-from .uvc_graph import UVCVertex, UVCGraph
 from .key_to_int import KeyToInt
+
+
+class Vertex:
+    def __init__(self):
+        self._labels : List[Union[str, Tuple[str, int]]] = []
+        # Outgoing neighbours
+        self._V_out : List[Vertex] = []
+        # Incoming neighbours
+        self._V_in : List[Vertex] = []
+
+    def get_canonical_labelling(self, color_function: KeyToInt) -> Tuple[Tuple[int], Tuple[int], Tuple[int]]:
+        """ Recursively compute a canonical labelling of the vertex and its direct neighbourhood.
+        """
+        return (tuple(sorted(color_function.get_int_from_key(label) for label in self._labels)),
+                tuple(sorted(tuple(sorted(color_function.get_int_from_key(label) for label in vertex._labels)) for vertex in self._V_out)),
+                tuple(sorted(tuple(sorted(color_function.get_int_from_key(label) for label in vertex._labels)) for vertex in self._V_in)),)
 
 
 class StateGraph:
@@ -17,120 +30,58 @@ class StateGraph:
         self._state = state
         self._coloring_function = coloring_function
         self._mark_true_goal_atoms = mark_true_goal_atoms
-        self._uvc_graph = self._create_undirected_vertex_colored_graph(state)
 
-    @staticmethod
-    def get_num_vertices(state: State):
-        """ Return the number of vertices in the graph.
+        ## 1. Initialize sufficiently many empty vertices and adjacency lists
+        self._num_vertices = 0
+        # One vertex for each object
+        self._num_vertices += len(state.get_problem().objects)
+        # N helper nodes for each atom of arity N
+        for atom in state.get_atoms():
+            self._num_vertices += len(atom.terms)
+        # N helper nodes for each goal atom of arity N
+        for literal in state.get_problem().goal:
+            self._num_vertices += len(literal.atom.terms)
+        self._vertices = [Vertex() for _ in range(self._num_vertices)]
+        self._outgoing_vertices = [[] for _ in range(self._num_vertices)]
+        self._ingoing_vertices = [[] for _ in range(self._num_vertices)]
+
+        ## 2. We need to be able to access vertices by object
+        object_name_to_vertex_index = dict()
+        for i, obj in enumerate(state.get_problem().objects):
+            object_name_to_vertex_index[obj.name] = i
+
+        ## 3. Add vertex labels and edges
+        i = 0
+        for obj in state.get_problem().objects:
+            # Label object node with its type
+            self._vertices[i]._labels.append(obj.type.name)
+            i += 1
+        for atom in state.get_atoms():
+            predicate_name = atom.predicate.name
+            for pos, term in enumerate(atom.terms):
+                object_id = object_name_to_vertex_index[term.name]
+                helper_id = i
+                self._vertices[helper_id]._labels.append((predicate_name, pos))
+                self._outgoing_vertices[object_id].append(helper_id)
+                self._ingoing_vertices[helper_id].append(object_id)
+                i += 1
+        for literal in state.get_problem().goal:
+            predicate_name = literal.atom.predicate.name
+            for pos, term in enumerate(literal.atom.terms):
+                object_id = object_name_to_vertex_index[term.name]
+                helper_id = i
+                self._vertices[helper_id]._labels.append((predicate_name + "_g", pos))
+                self._outgoing_vertices[object_id].append(helper_id)
+                self._ingoing_vertices[helper_id].append(object_id)
+                i += 1
+
+        ## 4. Propagate neighbourhood information
+        for vertex_id, vertex in enumerate(self._vertices):
+            vertex._V_in = [self._vertices[i] for i in self._ingoing_vertices[vertex_id]]
+            vertex._V_out = [self._vertices[i] for i in self._outgoing_vertices[vertex_id]]
+
+    def compute_initial_coloring(self, color_function: KeyToInt) -> Tuple[int]:
+        """ Return a canonical initial coloring of the graph
+        taking into account the direct neighbourhood information.
         """
-        num_vertices = len(state.get_problem().objects)
-        for atom in state.get_atoms():
-            arity = len(atom.terms)
-            num_vertices += arity
-        for goal_literal in state.get_problem().goal:
-            atom = goal_literal.atom
-            arity = len(atom.terms)
-            num_vertices += arity
-        return num_vertices
-
-
-    def _create_undirected_vertex_colored_graph(self, state : State):
-        problem = state.get_problem()
-        graph = UVCGraph(state)
-
-        vertex_function = KeyToInt()
-
-        # Add vertices
-        for obj in problem.objects:
-            v = UVCVertex(
-                id=vertex_function.get_int_from_key("o_" + obj.name),
-                color=Color(
-                    value=self._coloring_function.get_int_from_key("t_" + obj.type.name),
-                    info=obj.type.name))
-            graph.add_vertex(v)
-
-        def translate_atom_to_atom_repr(atom):
-            return (atom.predicate.name, tuple([obj.name for obj in atom.terms]))
-
-        def translate_literal_to_atom_repr(literal):
-            return (literal.atom.predicate.name, tuple([obj.name for obj in literal.atom.terms]))
-
-        state_atoms_reprs = set(translate_atom_to_atom_repr(atom) for atom in state.get_atoms())
-        goal_atoms_reprs = set(translate_literal_to_atom_repr(literal) for literal in problem.goal if not literal.negated)
-
-        helper_id = 0
-
-        # Add atom edges
-        for atom in state.get_atoms():
-            v_pos_prev = None
-            for pos, obj in enumerate(atom.terms):
-                v_object_id = vertex_function.get_int_from_key("o_" + obj.name)
-
-                # Add predicate node
-                v_pos = UVCVertex(vertex_function.get_int_from_key(f"h_{helper_id}"), Color(self._coloring_function.get_int_from_key("p_" + atom.predicate.name + f":{pos}"), "p_" + atom.predicate.name + f":{pos}"))
-                helper_id += 1
-                graph.add_vertex(v_pos)
-
-                # Connect predicate node to object node
-                graph.add_edge(v_object_id, v_pos.id)
-                graph.add_edge(v_pos.id, v_object_id)
-
-                if (v_pos_prev is not None):
-                    # connect with previous positional node
-                    graph.add_edge(v_pos_prev.id, v_pos.id)
-                    graph.add_edge(v_pos.id, v_pos_prev.id)
-                v_pos_prev = v_pos
-
-        # Add goal literals
-        for goal_literal in problem.goal:
-            atom = goal_literal.atom
-            negated = goal_literal.negated
-
-            if self._mark_true_goal_atoms:
-                if negated:
-                    if translate_literal_to_atom_repr(goal_literal) not in state_atoms_reprs:
-                        suffix = "_true"
-                    else:
-                        suffix = "_false"
-                else:
-                    if translate_literal_to_atom_repr(goal_literal) in state_atoms_reprs:
-                        suffix = "_true"
-                    else:
-                        suffix = "_false"
-            else:
-                suffix = ""
-
-            v_pos_prev = None
-            for pos, obj in enumerate(atom.terms):
-                v_object_id = vertex_function.get_int_from_key("o_" + obj.name)
-
-                # Add predicate node
-                if negated:
-                    v_pos = UVCVertex(vertex_function.get_int_from_key(f"h_{helper_id}"), Color(self._coloring_function.get_int_from_key("not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "not p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
-                else:
-                    v_pos = UVCVertex(vertex_function.get_int_from_key(f"h_{helper_id}"), Color(self._coloring_function.get_int_from_key("p_" + atom.predicate.name + "_g" + suffix + f":{pos}"), "p_" + atom.predicate.name + "_g" + suffix + f":{pos}"))
-                helper_id += 1
-                graph.add_vertex(v_pos)
-
-                # Connect predicate node to object node
-                graph.add_edge(v_object_id, v_pos.id)
-                graph.add_edge(v_pos.id, v_object_id)
-
-                if v_pos_prev is not None:
-                    # connect with previous positional node
-                    graph.add_edge(v_pos_prev.id, v_pos.id)
-                    graph.add_edge(v_pos.id, v_pos_prev.id)
-                v_pos_prev = v_pos
-
-        assert graph.test_is_undirected()
-        assert len(graph.vertices) == StateGraph.get_num_vertices(self.state)
-        return graph
-
-
-    @property
-    def state(self):
-        return self._state
-
-    @property
-    def uvc_graph(self):
-        return self._uvc_graph
+        return tuple(color_function.get_int_from_key(vertex.get_canonical_labelling(color_function)) for vertex in self._vertices)

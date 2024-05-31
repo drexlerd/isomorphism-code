@@ -55,7 +55,10 @@ class DVCGraph:
     def __init__(self, state : State):
         self._state = state
         self._vertices: Dict[int, DVCVertex] = dict()
-        self._adj_list: Dict[int, MutableSet[DVCEdge]] = dict()
+        self._adj_list: Dict[int, MutableSet[int]] = dict()
+
+    def get_canonical_color_multiset(self):
+        return tuple(sorted([vertex.color.value for vertex in self._vertices.values()]))
 
     def add_vertex(self, vertex : DVCVertex):
         """ Add a vertex *uniquely* to the graph.
@@ -65,24 +68,24 @@ class DVCGraph:
         self._vertices[vertex.id] = vertex
         self._adj_list[vertex.id] = set()
 
-    def add_edge(self, edge : DVCEdge):
+    def add_edge(self, source_id: int, target_id: int):
         """ Add an edge *uniquely* to the graph.
         """
-        if edge.source_id not in self._adj_list:
+        if source_id not in self._adj_list:
             raise Exception("Source node of edge does not exist.")
-        if edge in self._adj_list[edge.source_id]:
+        if target_id in self._adj_list[source_id]:
             raise Exception("Edge with same source, target and color already exists.")
-        self._adj_list[edge.source_id].add(edge)
+        self._adj_list[source_id].add(target_id)
 
     def to_dot(self, output_file_path="output.gc"):
         """ Render a dot representation of the graph.
         """
         dot = DotDigraph(comment='DirectedVertexColoredGraph')
         for vertex in self._vertices.values():
-            dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color)}")
-        for _, edges in self._adj_list.items():
-            for edge in edges:
-                dot.edge(str(edge.source_id), str(edge.target_id))
+            dot.node(str(vertex.id), f"{str(vertex.id)}: {str(vertex.color.value)} \"{str(vertex.color.info)}\"")
+        for source_id, target_ids in self._adj_list.items():
+            for target_id in target_ids:
+                dot.edge(str(source_id), str(target_id))
         dot.render(output_file_path, view=False, quiet=True)
 
     @property
