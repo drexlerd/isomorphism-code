@@ -13,8 +13,6 @@ class Vertex:
     def get_canonical_labelling(self, color_function: ColorFunction) -> Tuple[Tuple[int], Tuple[int], Tuple[int]]:
         """
         """
-        #assert len(self._labels) == 1
-        #return color_function.get_color_from_domain_label(self._labels[0])
         return color_function.get_color_from_aggregate_label(tuple(sorted(color_function.get_color_from_domain_label(label) for label in self._labels)))
 
 
