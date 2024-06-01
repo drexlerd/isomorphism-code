@@ -13,7 +13,7 @@ from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
 from .color_function import ColorFunction
-from .exact import Driver as ExactDriver, create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
+from .exact import Driver as ExactDriver
 
 
 def to_uvc_graph(state: State, coloring_function : ColorFunction, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
@@ -28,7 +28,7 @@ def to_uvc_graph(state: State, coloring_function : ColorFunction, mark_true_goal
     # state uvc already has antiparallel edges. Hence, we set directed to True here
     wl_graph = kwl.EdgeColoredGraph(False)
     for vertex_id, vertex in enumerate(state_graph._vertices):
-        wl_graph.add_node(color_remap[initial_coloring[vertex_id]])
+        wl_graph.add_node(color_remap[initial_coloring[vertex_id]] + 1)
     for vertex_id, vertex in enumerate(state_graph._vertices):
         for outgoing_vertex_id in state_graph._outgoing_vertices[vertex_id]:
             wl_graph.add_edge(vertex_id, outgoing_vertex_id)
@@ -93,8 +93,7 @@ class Driver:
             self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(class_representatives)}, #generated nodes = {len(search_nodes)}, #isomorphic representatives across instances = {len(existing_equivalence_keys)}")
 
             instances.append(InstanceData(i, problem_file_path, goal_distances, class_representatives, len(search_nodes)))
-            print("=========================================================")
-        exit(1)
+            # print("=========================================================")
 
         return instances
 
@@ -125,6 +124,8 @@ class Driver:
         total_conflicts_same_instance = 0
         value_conflicts_same_instance = 0
 
+        wl = kwl.CanonicalColorRefinement(False)
+
         for num_vertices, partition in partitioning.items():
 
             histogram_to_datas = defaultdict(list)
@@ -133,13 +134,15 @@ class Driver:
 
                 wl_graph = to_uvc_graph(state, self._coloring_function, self._mark_true_goal_atoms)
 
-                histogram = tuple(kwl.CanonicalColorRefinement.histogram(kwl.CanonicalColorRefinement(False).calculate(wl_graph)))
+                wl.calculate(wl_graph, True)
 
-                histogram_to_datas[histogram].append((instance_id, state, v_star))
+                factor_matrix = tuple(wl.get_factor_matrix())
+
+                histogram_to_datas[factor_matrix].append((instance_id, state, v_star, wl_graph))
 
 
             for _, datas in histogram_to_datas.items():
-                for (instance_id_1, state_1, v_star_1), (instance_id_2, state_2, v_star_2) in combinations(datas, 2):
+                for (instance_id_1, state_1, v_star_1, wl_graph_1), (instance_id_2, state_2, v_star_2, wl_graph_2) in combinations(datas, 2):
 
                     total_conflicts += 1
                     if instance_id_1 == instance_id_2:
@@ -156,6 +159,12 @@ class Driver:
                     self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
                     self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.get_atoms()}")
                     self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.get_atoms()}")
+                    #print(wl_graph_1)
+                    #print(wl_graph_2)
+                    #state_graph_1 = StateGraph(state_1, self._coloring_function)
+                    #state_graph_1.to_dot("state_1.gc")
+                    #state_graph_2 = StateGraph(state_2, self._coloring_function)
+                    #state_graph_2.to_dot("state_2.gc")
 
 
         return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance

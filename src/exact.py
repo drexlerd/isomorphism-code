@@ -15,30 +15,28 @@ from .color_function import ColorFunction
 from .uvc_graph import UVCGraph
 
 
-def create_pynauty_undirected_vertex_colored_graph(state_graph: StateGraph, initial_coloring: Tuple[int]) -> NautyGraph:
-        ### TODO: we have to sort vertices according to color, then we can create correct color partition.
-        # Compute adjacency dict
-        adjacency_dict = defaultdict(set)
-        for vertex_id in range(len(state_graph._vertices)):
-            adjacency_dict[vertex_id] = set(state_graph._outgoing_vertices[vertex_id])
-        # Compute vertex partitioning
-        print(state_graph._state.get_atoms())
-        print(initial_coloring)
-        color_to_vertices = defaultdict(set)
-        for vertex_id in range(len(state_graph._vertices)):
-            color_to_vertices[initial_coloring[vertex_id]].add(vertex_id)
-        color_to_vertices = dict(sorted(color_to_vertices.items()))
-        vertex_coloring = list(color_to_vertices.values())
+def create_pynauty_undirected_vertex_colored_graph(state_graph: StateGraph, coloring_function: ColorFunction) -> NautyGraph:
+    # Compute adjacency dict
+    adjacency_dict = defaultdict(set)
+    for source_id, target_ids in enumerate(state_graph._outgoing_vertices):
+        for target_id in target_ids:
+            adjacency_dict[source_id].add(target_id)
+            adjacency_dict[target_id].add(source_id)
+    # Compute vertex partitioning
+    color_to_vertices = defaultdict(set)
+    initial_coloring = state_graph.compute_initial_coloring(coloring_function)
+    for vertex_id in range(len(state_graph._vertices)):
+        color_to_vertices[initial_coloring[vertex_id]].add(vertex_id)
+    color_to_vertices = {key: color_to_vertices[key] for key in sorted(color_to_vertices)}
+    vertex_coloring = list(color_to_vertices.values())
 
-        graph = NautyGraph(
-            number_of_vertices=len(state_graph._vertices),
-            directed=False,
-            adjacency_dict=adjacency_dict,
-            vertex_coloring=vertex_coloring)
+    graph = NautyGraph(
+        number_of_vertices=len(state_graph._vertices),
+        directed=False,
+        adjacency_dict=adjacency_dict,
+        vertex_coloring=vertex_coloring)
 
-        # print(str(graph))
-
-        return graph
+    return graph
 
 def compute_nauty_certificate(nauty_graph: NautyGraph):
     return certificate(nauty_graph)
@@ -88,15 +86,14 @@ class Driver:
         start_time = time.time()
         initial_state = problem.create_state(problem.initial)
         state_graph = StateGraph(initial_state, self._coloring_function, mark_true_goal_atoms=False)
-        initial_coloring = state_graph.compute_initial_coloring(self._coloring_function)
-        canonical_initial_coloring = tuple(sorted(initial_coloring))
-        nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, canonical_initial_coloring))
-        equivalence_class_key = (nauty_certificate, canonical_initial_coloring)
+        nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, self._coloring_function))
+        # state graphs with different initial coloring cannot be isomorphic
+        # since we are remapping colors, we have to add it to the key
+        equivalence_class_key = (nauty_certificate, tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function))))
         class_representative[equivalence_class_key] = initial_state
         class_states[equivalence_class_key].add(initial_state)
-        #if self._dump_dot:
-        #    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{len(class_representative)}/0.gc")
-        #    state_graph.dvc_graph.to_dot(f"outputs/dvcs/{len(class_representative)}/0.gc")
+        if self._dump_dot:
+            state_graph.to_dot(f"outputs/uvcs/{len(class_representative)}/0.gc")
 
         queue = deque()
         queue.append(initial_state)
@@ -129,18 +126,15 @@ class Driver:
                     continue
 
                 state_graph = StateGraph(suc_state, self._coloring_function, mark_true_goal_atoms=False)
-                initial_coloring = state_graph.compute_initial_coloring(self._coloring_function)
-                canonical_initial_coloring = tuple(sorted(initial_coloring))
-                nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, initial_coloring))
-                equivalence_class_key = (nauty_certificate, canonical_initial_coloring)
+                nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, self._coloring_function))
+                equivalence_class_key = (nauty_certificate, tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function))))
 
                 if equivalence_class_key not in class_representative:
                     class_representative[equivalence_class_key] = suc_state
                 class_states[equivalence_class_key].add(suc_state)
 
-                #if self._dump_dot:
-                #    state_graph.uvc_graph.to_dot(f"outputs/uvcs/{len(class_representative)}/{len(search_nodes)}.gc")
-                #    state_graph.dvc_graph.to_dot(f"outputs/dvcs/{len(class_representative)}/{len(search_nodes)}.gc")
+                if self._dump_dot:
+                    state_graph.to_dot(f"outputs/uvcs/{len(class_representative)}/{len(search_nodes)}.gc")
 
                 suc_representative = class_representative[equivalence_class_key]
 

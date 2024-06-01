@@ -14,6 +14,9 @@ class ColorFunction:
             for pos in range(len(predicate.parameters)):
                 self._domain_label_to_color[(predicate.name, pos)] = len(self._domain_label_to_color)
                 self._domain_label_to_color[(predicate.name + "_g", pos)] = len(self._domain_label_to_color)
+            if len(predicate.parameters) == 0:
+                self._domain_label_to_color[(predicate.name, -1)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.name + "_g", -1)] = len(self._domain_label_to_color)
 
         self._aggregate_to_color = dict()
 
