@@ -48,6 +48,7 @@ class Driver:
     def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, ignore_counting: bool, mark_true_goal_atoms: bool):
         self._domain_file_path = (data_path / "domain.pddl").resolve()
         self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
+        print(self._domain_file_path)
         self._domain_parser = DomainParser(str(self._domain_file_path))
         self._domain = self._domain_parser.parse()
         self._coloring_function = ColorFunction(self._domain)
