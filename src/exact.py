@@ -54,8 +54,8 @@ class Driver:
         self._coloring_function = coloring_function
 
         if self._coloring_function is None:
-            domain_parser = DomainParser(str(self._domain_file_path))
-            self._domain = domain_parser.parse()
+            self._domain_parser = DomainParser(str(self._domain_file_path))
+            self._domain = self._domain_parser.parse()
             self._coloring_function = ColorFunction(self._domain)
 
         global logger
