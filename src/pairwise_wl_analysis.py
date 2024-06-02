@@ -1,10 +1,9 @@
 import pykwl as kwl
-import sys
 
 from collections import defaultdict, deque
 from pathlib import Path
-from pymimir import PDDLFactories, PDDLParser, IAAG, ISSG, Problem, State, StateSpace
-from typing import List, Tuple, Union, Dict, Any, Deque
+from pymimir import PDDLFactories, PDDLParser, IAAG, ISSG, Problem, State
+from typing import List, Tuple, Dict, Any, Deque
 from itertools import combinations
 from dataclasses import dataclass
 
@@ -164,12 +163,6 @@ class Driver:
                     self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
                     self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.to_string(instances[instance_id_1].parser.get_problem(), instances[instance_id_1].parser.get_factories())}")
                     self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.to_string(instances[instance_id_2].parser.get_problem(), instances[instance_id_2].parser.get_factories())}")
-                    #print(wl_graph_1)
-                    #print(wl_graph_2)
-                    #state_graph_1 = StateGraph(state_1, self._coloring_function)
-                    #state_graph_1.to_dot("state_1.gc")
-                    #state_graph_2 = StateGraph(state_2, self._coloring_function)
-                    #state_graph_2.to_dot("state_2.gc")
 
 
         return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance

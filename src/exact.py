@@ -1,9 +1,8 @@
-import sys
 import time
 
 from pathlib import Path
 from collections import defaultdict, deque
-from typing import Dict, Tuple, List, Deque
+from typing import Dict, Deque
 
 from pymimir import PDDLParser, GroundedAAG, State, StateSpace, SSG
 from pynauty import Graph as NautyGraph, certificate
@@ -12,7 +11,6 @@ from .state_graph import StateGraph
 from .logger import initialize_logger, add_console_handler
 from .search_node import SearchNode
 from .color_function import ColorFunction
-from .uvc_graph import UVCGraph
 
 
 def create_pynauty_undirected_vertex_colored_graph(state_graph: StateGraph, coloring_function: ColorFunction) -> NautyGraph:
