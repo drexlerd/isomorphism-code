@@ -3,9 +3,9 @@ import time
 
 from pathlib import Path
 from collections import defaultdict, deque
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List, Deque
 
-from pymimir import DomainParser, ProblemParser, LiftedSuccessorGenerator, State, StateSpace
+from pymimir import PDDLParser, GroundedAAG, State, StateSpace, SSG
 from pynauty import Graph as NautyGraph, certificate
 
 from .state_graph import StateGraph
@@ -53,11 +53,6 @@ class Driver:
         self._max_num_states = max_num_states
         self._coloring_function = coloring_function
 
-        if self._coloring_function is None:
-            self._domain_parser = DomainParser(str(self._domain_file_path))
-            self._domain = self._domain_parser.parse()
-            self._coloring_function = ColorFunction(self._domain)
-
         global logger
         logger.setLevel(verbosity)
         self._logger = logger
@@ -72,20 +67,25 @@ class Driver:
         class_states = defaultdict(set)
         class_representative = dict()
 
-        domain_parser = DomainParser(str(self._domain_file_path))
-        domain = domain_parser.parse()
-        problem_parser = ProblemParser(str(self._problem_file_path))
-        problem = problem_parser.parse(domain)
-        successor_generator = LiftedSuccessorGenerator(problem)
+        parser = PDDLParser(str(self._domain_file_path), str(self._problem_file_path))
+        domain = parser.get_domain()
+        problem = parser.get_problem()
+        pddl_factories = parser.get_factories()
+        aag = GroundedAAG(problem, pddl_factories)
+        ssg = SSG(aag)
 
-        state_space = StateSpace.new(problem, successor_generator, self._max_num_states)
+        state_space = StateSpace.create(str(self._domain_file_path), str(self._problem_file_path), self._max_num_states, 100000)
         if state_space is None:
-            return [None] * 5
+            return [None] * 6
+
+        if self._coloring_function is None:
+            self._coloring_function = ColorFunction(domain)
 
         self._logger.info("Started generating Aut(G)")
         start_time = time.time()
-        initial_state = problem.create_state(problem.initial)
-        state_graph = StateGraph(initial_state, self._coloring_function, mark_true_goal_atoms=False)
+        initial_state = ssg.get_or_create_initial_state()
+
+        state_graph = StateGraph(pddl_factories, problem, initial_state, self._coloring_function, mark_true_goal_atoms=False)
         nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, self._coloring_function))
         # state graphs with different initial coloring cannot be isomorphic
         # since we are remapping colors, we have to add it to the key
@@ -95,7 +95,7 @@ class Driver:
         if self._dump_dot:
             state_graph.to_dot(f"outputs/uvcs/{len(class_representative)}/0.gc")
 
-        queue = deque()
+        queue : Deque[State] = deque()
         queue.append(initial_state)
         closed_list = set()
         closed_list.add(initial_state)
@@ -103,16 +103,20 @@ class Driver:
         search_nodes[initial_state] = SearchNode([], 0, equivalence_class_key)
         goal_states = set()
 
+        if (not initial_state.static_ground_literals_hold(problem, problem.get_static_goal_condition())):
+            return [None] * 6
+
         while queue:
             cur_state = queue.popleft()
             cur_search_node = search_nodes[cur_state]
             cur_representative = class_representative[cur_search_node.equivalence_class_key]
 
-            if cur_state.literals_hold(problem.goal):
+            if cur_state.fluent_ground_literals_hold(problem, problem.get_fluent_goal_condition()) \
+                and cur_state.derived_ground_literals_hold(problem, problem.get_derived_goal_condition()):
                 goal_states.add(cur_state)
 
-            for applicable_action in successor_generator.get_applicable_actions(cur_state):
-                suc_state = applicable_action.apply(cur_state)
+            for applicable_action in aag.compute_applicable_actions(cur_state):
+                suc_state = ssg.get_or_create_successor_state(cur_state, applicable_action)
 
                 if suc_state in closed_list:
                     # State has already been generated
@@ -125,7 +129,7 @@ class Driver:
                         search_nodes[suc_state].parent_states.append(cur_state)
                     continue
 
-                state_graph = StateGraph(suc_state, self._coloring_function, mark_true_goal_atoms=False)
+                state_graph = StateGraph(pddl_factories, problem, suc_state, self._coloring_function, mark_true_goal_atoms=False)
                 nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, self._coloring_function))
                 equivalence_class_key = (nauty_certificate, tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function))))
 
@@ -148,7 +152,7 @@ class Driver:
                     search_nodes[suc_state] = SearchNode([cur_state,], cur_search_node.g_value + 1, equivalence_class_key)
 
                 if (len(search_nodes) >= self._max_num_states):
-                    return [None] * 5
+                    return [None] * 6
 
         queue = deque()
         goal_distances = dict()
@@ -173,5 +177,4 @@ class Driver:
         self._logger.info(f"Total time: {runtime:.2f} seconds")
         self._logger.info(f"Number of generated states: {len(search_nodes)}")
         self._logger.info(f"Number of equivalence classes: {len(class_representative)}")
-
-        return domain, problem, goal_distances, class_representative, search_nodes
+        return parser, aag, ssg, goal_distances, class_representative, search_nodes

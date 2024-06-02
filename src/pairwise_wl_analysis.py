@@ -3,7 +3,7 @@ import sys
 
 from collections import defaultdict, deque
 from pathlib import Path
-from pymimir import Atom, Domain, DomainParser, GroundedSuccessorGenerator, Problem, ProblemParser, State, StateSpace
+from pymimir import PDDLFactories, PDDLParser, IAAG, ISSG, Problem, State, StateSpace
 from typing import List, Tuple, Union, Dict, Any, Deque
 from itertools import combinations
 from dataclasses import dataclass
@@ -16,8 +16,8 @@ from .color_function import ColorFunction
 from .exact import Driver as ExactDriver
 
 
-def to_uvc_graph(state: State, coloring_function : ColorFunction, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
-    state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
+def to_uvc_graph(pddl_factories: PDDLFactories, problem: Problem,  state: State, coloring_function : ColorFunction, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
+    state_graph = StateGraph(pddl_factories, problem, state, coloring_function, mark_true_goal_atoms)
     initial_coloring = state_graph.compute_initial_coloring(coloring_function)
     # remap colors to obtain canonical surjective l={1,...,n}
     color_remap = dict()
@@ -39,6 +39,9 @@ def to_uvc_graph(state: State, coloring_function : ColorFunction, mark_true_goal
 class InstanceData:
     id: int
     problem_file_path: str
+    parser: PDDLParser
+    aag: IAAG
+    ssg: ISSG
     goal_distances: Dict[State, int]
     class_representatives: Dict[Any, State]
     num_total_states: int
@@ -48,10 +51,7 @@ class Driver:
     def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, ignore_counting: bool, mark_true_goal_atoms: bool):
         self._domain_file_path = (data_path / "domain.pddl").resolve()
         self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
-        print(self._domain_file_path)
-        self._domain_parser = DomainParser(str(self._domain_file_path))
-        self._domain = self._domain_parser.parse()
-        self._coloring_function = ColorFunction(self._domain)
+        self._coloring_function = None
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
@@ -68,9 +68,14 @@ class Driver:
         equivalence_class_key_to_i = dict()
 
         for i, problem_file_path in enumerate(self._problem_file_paths):
+
+            if self._coloring_function is None:
+                tmp_parser = PDDLParser(str(self._domain_file_path), str(problem_file_path))
+                self._coloring_function = ColorFunction(tmp_parser.get_domain())
+
             try:
                 exact_driver = ExactDriver(self._domain_file_path, problem_file_path, "ERROR", False, enable_pruning=self._enable_pruning, max_num_states=self._max_num_states, coloring_function=self._coloring_function)
-                _, _, goal_distances, class_representatives, search_nodes = exact_driver.run()
+                parser, aag, ssg, goal_distances, class_representatives, search_nodes = exact_driver.run()
 
             except MemoryError:
                 self._logger.error(f"Out of memory when generating data for problem: {problem_file_path}")
@@ -93,9 +98,8 @@ class Driver:
 
             self._logger.info(f"[Nauty] instance = {i}, #representatives = {len(class_representatives)}, #generated nodes = {len(search_nodes)}, #isomorphic representatives across instances = {len(existing_equivalence_keys)}")
 
-            instances.append(InstanceData(i, problem_file_path, goal_distances, class_representatives, len(search_nodes)))
+            instances.append(InstanceData(i, problem_file_path, parser, aag, ssg, goal_distances, class_representatives, len(search_nodes)))
             # print("=========================================================")
-
         return instances
 
 
@@ -105,7 +109,7 @@ class Driver:
         for instance_id, instance in enumerate(instances):
             for equivalence_class_key, state in instance.class_representatives.items():
 
-                state_graph = StateGraph(state, self._coloring_function)
+                state_graph = StateGraph(instance.parser.get_factories(), instance.parser.get_problem(), state, self._coloring_function)
 
                 canonical_initial_coloring = tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function)))
 
@@ -133,7 +137,7 @@ class Driver:
 
             for certificate, (instance_id, state, v_star) in partition.items():
 
-                wl_graph = to_uvc_graph(state, self._coloring_function, self._mark_true_goal_atoms)
+                wl_graph = to_uvc_graph(instances[instance_id].parser.get_factories(), instances[instance_id].parser.get_problem(), state, self._coloring_function, self._mark_true_goal_atoms)
 
                 wl.calculate(wl_graph, True)
 
@@ -158,8 +162,8 @@ class Driver:
 
                     self._logger.info(f" > Instance 1: {instances[instance_id_1].problem_file_path}")
                     self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
-                    self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.get_atoms()}")
-                    self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.get_atoms()}")
+                    self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.to_string(instances[instance_id_1].parser.get_problem(), instances[instance_id_1].parser.get_factories())}")
+                    self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.to_string(instances[instance_id_2].parser.get_problem(), instances[instance_id_2].parser.get_factories())}")
                     #print(wl_graph_1)
                     #print(wl_graph_2)
                     #state_graph_1 = StateGraph(state_1, self._coloring_function)

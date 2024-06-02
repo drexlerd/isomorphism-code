@@ -8,15 +8,13 @@ class ColorFunction:
         """
         # Make the labelling canonical with respect to predicate and type names
         self._domain_label_to_color = dict()
-        for typ in sorted(domain.types, key = lambda x: x.name):
-            self._domain_label_to_color[typ.name] = len(self._domain_label_to_color)
-        for predicate in sorted(domain.predicates, key = lambda x : x.name):
-            for pos in range(len(predicate.parameters)):
-                self._domain_label_to_color[(predicate.name, pos)] = len(self._domain_label_to_color)
-                self._domain_label_to_color[(predicate.name + "_g", pos)] = len(self._domain_label_to_color)
-            if len(predicate.parameters) == 0:
-                self._domain_label_to_color[(predicate.name, -1)] = len(self._domain_label_to_color)
-                self._domain_label_to_color[(predicate.name + "_g", -1)] = len(self._domain_label_to_color)
+        for predicate in sorted(domain.get_fluent_predicates() + domain.get_static_predicates(), key = lambda x : x.get_name()):
+            for pos in range(len(predicate.get_parameters())):
+                self._domain_label_to_color[(predicate.get_name(), pos)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.get_name() + "_g", pos)] = len(self._domain_label_to_color)
+            if len(predicate.get_parameters()) == 0:
+                self._domain_label_to_color[(predicate.get_name(), -1)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.get_name() + "_g", -1)] = len(self._domain_label_to_color)
 
         self._aggregate_to_color = dict()
 
