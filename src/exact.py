@@ -43,10 +43,11 @@ logger = initialize_logger("exact")
 add_console_handler(logger)
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int, coloring_function : ColorFunction = None):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, dump_dot: bool, enable_pruning: bool, max_num_states: int, mark_true_goal_atoms: bool, coloring_function : ColorFunction = None):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._dump_dot = dump_dot
+        self._mark_true_goal_atoms = mark_true_goal_atoms
         self._enable_pruning = enable_pruning
         self._max_num_states = max_num_states
         self._coloring_function = coloring_function
@@ -83,7 +84,7 @@ class Driver:
         start_time = time.time()
         initial_state = ssg.get_or_create_initial_state()
 
-        state_graph = StateGraph(pddl_factories, problem, initial_state, self._coloring_function, mark_true_goal_atoms=False)
+        state_graph = StateGraph(pddl_factories, problem, initial_state, self._coloring_function, mark_true_goal_atoms=self._mark_true_goal_atoms)
         nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, self._coloring_function))
         # state graphs with different initial coloring cannot be isomorphic
         # since we are remapping colors, we have to add it to the key
@@ -101,7 +102,7 @@ class Driver:
         search_nodes[initial_state] = SearchNode([], 0, equivalence_class_key)
         goal_states = set()
 
-        if (not initial_state.static_ground_literals_hold(problem, problem.get_static_goal_condition())):
+        if (not initial_state.literals_hold(problem, problem.get_static_goal_condition())):
             return [None] * 6
 
         while queue:
@@ -109,8 +110,8 @@ class Driver:
             cur_search_node = search_nodes[cur_state]
             cur_representative = class_representative[cur_search_node.equivalence_class_key]
 
-            if cur_state.fluent_ground_literals_hold(problem, problem.get_fluent_goal_condition()) \
-                and cur_state.derived_ground_literals_hold(problem, problem.get_derived_goal_condition()):
+            if cur_state.literals_hold(problem, problem.get_fluent_goal_condition()) \
+                and cur_state.literals_hold(problem, problem.get_derived_goal_condition()):
                 goal_states.add(cur_state)
 
             for applicable_action in aag.compute_applicable_actions(cur_state):
@@ -127,7 +128,7 @@ class Driver:
                         search_nodes[suc_state].parent_states.append(cur_state)
                     continue
 
-                state_graph = StateGraph(pddl_factories, problem, suc_state, self._coloring_function, mark_true_goal_atoms=False)
+                state_graph = StateGraph(pddl_factories, problem, suc_state, self._coloring_function, mark_true_goal_atoms=self._mark_true_goal_atoms)
                 nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph, self._coloring_function))
                 equivalence_class_key = (nauty_certificate, tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function))))
 

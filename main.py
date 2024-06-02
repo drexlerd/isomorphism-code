@@ -80,7 +80,8 @@ if __name__ == "__main__":
             args.verbosity,
             args.dump_dot,
             args.enable_pruning,
-            args.max_num_states)
+            args.max_num_states,
+            mark_true_goal_atoms=False)
     elif args.type == "wl":
         from src.wl_analysis import Driver
         driver = Driver(

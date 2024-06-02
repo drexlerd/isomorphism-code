@@ -12,9 +12,13 @@ class ColorFunction:
             for pos in range(len(predicate.get_parameters())):
                 self._domain_label_to_color[(predicate.get_name(), pos)] = len(self._domain_label_to_color)
                 self._domain_label_to_color[(predicate.get_name() + "_g", pos)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.get_name() + "_g_true", pos)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.get_name() + "_g_false", pos)] = len(self._domain_label_to_color)
             if len(predicate.get_parameters()) == 0:
                 self._domain_label_to_color[(predicate.get_name(), -1)] = len(self._domain_label_to_color)
                 self._domain_label_to_color[(predicate.get_name() + "_g", -1)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.get_name() + "_g_true", -1)] = len(self._domain_label_to_color)
+                self._domain_label_to_color[(predicate.get_name() + "_g_false", -1)] = len(self._domain_label_to_color)
 
         self._aggregate_to_color = dict()
 
@@ -31,7 +35,7 @@ class ColorFunction:
         """ Return the color of an aggregate
         """
         if key not in self._aggregate_to_color:
-            self._aggregate_to_color[key] = len(self._domain_label_to_color) + len(self._aggregate_to_color)
+            self._aggregate_to_color[key] = len(self._domain_label_to_color) + len(self._aggregate_to_color) + 1000
         return self._aggregate_to_color[key]
 
 

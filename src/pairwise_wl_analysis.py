@@ -12,7 +12,7 @@ from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
 from .state_graph import StateGraph
 from .color_function import ColorFunction
-from .exact import Driver as ExactDriver
+from .exact import Driver as ExactDriver, compute_nauty_certificate, create_pynauty_undirected_vertex_colored_graph
 
 
 def to_uvc_graph(pddl_factories: PDDLFactories, problem: Problem,  state: State, coloring_function : ColorFunction, mark_true_goal_atoms: bool) -> kwl.EdgeColoredGraph:
@@ -73,7 +73,7 @@ class Driver:
                 self._coloring_function = ColorFunction(tmp_parser.get_domain())
 
             try:
-                exact_driver = ExactDriver(self._domain_file_path, problem_file_path, "ERROR", False, enable_pruning=self._enable_pruning, max_num_states=self._max_num_states, coloring_function=self._coloring_function)
+                exact_driver = ExactDriver(self._domain_file_path, problem_file_path, "ERROR", False, enable_pruning=self._enable_pruning, max_num_states=self._max_num_states, mark_true_goal_atoms=self._mark_true_goal_atoms, coloring_function=self._coloring_function)
                 parser, aag, ssg, goal_distances, class_representatives, search_nodes = exact_driver.run()
 
             except MemoryError:
@@ -108,7 +108,7 @@ class Driver:
         for instance_id, instance in enumerate(instances):
             for equivalence_class_key, state in instance.class_representatives.items():
 
-                state_graph = StateGraph(instance.parser.get_factories(), instance.parser.get_problem(), state, self._coloring_function)
+                state_graph = StateGraph(instance.parser.get_factories(), instance.parser.get_problem(), state, self._coloring_function, self._mark_true_goal_atoms)
 
                 canonical_initial_coloring = tuple(sorted(state_graph.compute_initial_coloring(self._coloring_function)))
 
@@ -130,11 +130,11 @@ class Driver:
 
         wl = kwl.CanonicalColorRefinement(False)
 
-        for num_vertices, partition in partitioning.items():
+        for canonical_initial_coloring, partition in partitioning.items():
 
             histogram_to_datas = defaultdict(list)
 
-            for certificate, (instance_id, state, v_star) in partition.items():
+            for nauty_certificate, (instance_id, state, v_star) in partition.items():
 
                 wl_graph = to_uvc_graph(instances[instance_id].parser.get_factories(), instances[instance_id].parser.get_problem(), state, self._coloring_function, self._mark_true_goal_atoms)
 
@@ -143,7 +143,6 @@ class Driver:
                 factor_matrix = tuple(wl.get_factor_matrix())
 
                 histogram_to_datas[factor_matrix].append((instance_id, state, v_star, wl_graph))
-
 
             for _, datas in histogram_to_datas.items():
                 for (instance_id_1, state_1, v_star_1, wl_graph_1), (instance_id_2, state_2, v_star_2, wl_graph_2) in combinations(datas, 2):
