@@ -1,5 +1,5 @@
 (define (domain blocksworld)
-  (:requirements :strips)
+  (:requirements :strips :typing)
 (:constants b1)
 (:predicates (clear ?x)
              (on-table ?x)

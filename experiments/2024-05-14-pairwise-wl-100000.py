@@ -165,7 +165,7 @@ for domain_name in SUITE:
     # multiple algorithms.
     run.set_property("id", ["pairwise-wl-mark-true-goal-atoms", domain_name])
 
-
+    """
     ### Additional options: --ignore-counting
     run = exp.add_run()
     # Create symbolic links and aliases. This is optional. We
@@ -223,6 +223,7 @@ for domain_name in SUITE:
     # The algorithm name is only really needed when there are
     # multiple algorithms.
     run.set_property("id", ["pairwise-wl-mark-true-goal-atoms-ignore-counting", domain_name])
+    """
 
 # Add step that writes experiment files to disk.
 exp.add_step("build", exp.build)
