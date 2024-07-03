@@ -76,7 +76,7 @@ class Driver:
         equivalence_class_key_to_i = dict()
 
         for i, problem_file_path in enumerate(self._problem_file_paths):
-
+            print(problem_file_path)
             if self._coloring_function is None:
                 tmp_parser = PDDLParser(str(self._domain_file_path), str(problem_file_path))
                 self._coloring_function = ColorFunction(tmp_parser.get_domain())
@@ -199,6 +199,32 @@ class Driver:
 
             for conflict_group in conflict_groups:
                 for (instance_id_1, state_id_1, v_star_1), (instance_id_2, state_id_2, v_star_2) in combinations(conflict_group, 2):
+                    # Blai: use canonical color refinement as approximation and correct false positives
+                    wl1 = kwl.WeisfeilerLeman(1, self._ignore_counting)
+
+                    wl_graph_1 = to_uvc_graph(
+                        instances[instance_id_1].parser.get_factories(),
+                        instances[instance_id_1].parser.get_problem(),
+                        instances[instance_id_1].class_representatives_by_state_id[state_id_1],
+                        self._coloring_function,
+                        self._mark_true_goal_atoms)
+
+                    wl_graph_2 = to_uvc_graph(
+                        instances[instance_id_1].parser.get_factories(),
+                        instances[instance_id_1].parser.get_problem(),
+                        instances[instance_id_1].class_representatives_by_state_id[state_id_1],
+                        self._coloring_function,
+                        self._mark_true_goal_atoms)
+
+                    coloring_1 = wl1.compute_coloring(wl_graph_1)
+                    coloring_2 = wl1.compute_coloring(wl_graph_2)
+
+                    if coloring_1 != coloring_2:
+                        continue
+
+                    print(wl_graph_1)
+                    print(wl_graph_2)
+
                     # Report 1-WL conflict
                     total_conflicts[0] += 1
                     if instance_id_1 == instance_id_2:
@@ -240,6 +266,8 @@ class Driver:
                         self._logger.info(f" > Instance 2: {instances[instance_id_2].problem_file_path}")
                         self._logger.info(f" > Cost: {v_star_1}; State 1: {instances[instance_id_1].class_representatives_by_state_id[state_id_1].to_string(instances[instance_id_1].parser.get_problem(), instances[instance_id_1].parser.get_factories())}")
                         self._logger.info(f" > Cost: {v_star_2}; State 2: {instances[instance_id_2].class_representatives_by_state_id[state_id_2].to_string(instances[instance_id_2].parser.get_problem(), instances[instance_id_2].parser.get_factories())}")
+
+                    exit(1)
 
         return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance
 
