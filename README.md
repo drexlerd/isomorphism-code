@@ -1,5 +1,4 @@
-# weifeiler-lehman-code
-
+# isomorphism-code
 
 # Installation
 
@@ -19,8 +18,18 @@ To run the tool, simply call `main.py` and it will show you the options
 python3 main.py
 ```
 
-For example, the following call will generate the equivalence classes for a `Gripper` instance with `3` balls and dumps dot representations of the directed edge labelled state graphs in `outputs/decs` and the respective directed vertex labelled state graphs in `outputs/dvcs`.
+## 1. Equivalence reduction
+
+The following call will generate the equivalence classes for a `Gripper` instance with `3` balls and dumps dot representations of the directed edge labelled state graphs in `outputs/decs` and the respective directed vertex labelled state graphs in `outputs/dvcs`.
 
 ```console
 python3 main.py exact --domain_file_path data/gripper/domain.pddl --problem_file_path data/gripper/instances/p-3-0.pddl --dump-dot
+```
+
+## 2. Pairwise conflicts
+
+The following call will test for pairwise conflicts between states in Gripper instances
+
+```console
+./main.py pairwise-wl --data-path data/gripper
 ```
