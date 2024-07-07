@@ -1,4 +1,4 @@
-pymimir==0.9.15
+pymimir==0.9.51
 graphviz==0.20.1
 lab==8.0
 pykwl==0.0.19
