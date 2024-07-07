@@ -1,18 +1,15 @@
 import pykwl as kwl
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from pathlib import Path
-from pymimir import PDDLFactories, PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, ObjectGraph, ObjectGraphFactory, SparseNautyGraph, SparseNautyGraphFactory
-from typing import List, Tuple, Dict, Any, Deque, MutableSet
+from pymimir import PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, ObjectGraph, ObjectGraphFactory, SparseNautyGraph, SparseNautyGraphFactory
+from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
 import subprocess
 
-import random
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
-from .state_graph import StateGraph
-from .color_function import ColorFunction
 
 
 def to_uvc_graph(object_graph: ObjectGraph) -> kwl.EdgeColoredGraph:
