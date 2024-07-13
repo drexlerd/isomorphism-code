@@ -1,8 +1,6 @@
-import pykwl as kwl
-
 from collections import defaultdict
 from pathlib import Path
-from pymimir import PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, ObjectGraph, ObjectGraphFactory, SparseNautyGraph, SparseNautyGraphFactory
+from pymimir import PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, SparseNautyGraph, VertexColoredDigraph, ProblemColorFunction, create_object_graph, compute_vertex_colors
 from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
@@ -11,35 +9,28 @@ import subprocess
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
 
+import pykwl as kwl
 
-def to_uvc_graph(object_graph: ObjectGraph) -> kwl.EdgeColoredGraph:
+
+def to_uvc_graph(object_graph: VertexColoredDigraph) -> kwl.EdgeColoredGraph:
     wl_graph = kwl.EdgeColoredGraph(False)
 
-    digraph = object_graph.get_digraph()
-    # Partitioning represents a surjective l coloring to {0,...,l-1}
-    vertex_index_permutation = object_graph.get_partitioning().get_vertex_index_permutation()
-    partitioning = object_graph.get_partitioning().get_partitioning()
-
-    vertex_id_to_l_color = dict()
-    cur_l_color = 1  # coloring starts at 1
-    for i in range(digraph.get_num_vertices()):
-        vertex_id = vertex_index_permutation[i]
-        vertex_id_to_l_color[vertex_id] = cur_l_color
-        if partitioning[i] == 0:
-            # We use nauty's representation of a partitioning.
-            # The 0 indicates the end of a partition.
-            # Hence, the next index i will be the beginning of the next partition.
-            cur_l_color += 1
+    vertex_colors = compute_vertex_colors(object_graph)
+    sorted_vertex_colors = sorted(vertex_colors)
+    color_remap = dict()
+    for color in sorted_vertex_colors:
+        if color not in color_remap:
+            color_remap[color] = len(color_remap)
 
     # Copy vertices and edges. The indices remain identical.
-    for vertex_id in range(digraph.get_num_vertices()):
-        wl_graph.add_node(vertex_id_to_l_color[vertex_id])
+    for vertex_id in range(object_graph.get_num_vertices()):
+        wl_graph.add_node(color_remap[vertex_colors[vertex_id]] + 1)  # coloring must start at 1
 
-    for source_vertex_id in range(digraph.get_num_vertices()):
-        for target_vertex_id in digraph.get_targets(source_vertex_id):
-            if (source_vertex_id < target_vertex_id):
-                # Antiparallel edges are added automatically in an undirected graph.
-                wl_graph.add_edge(source_vertex_id, target_vertex_id)
+    for source_vertex_id in range(object_graph.get_num_vertices()):
+        for target_vertex in object_graph.get_targets(source_vertex_id):
+            if (source_vertex_id < target_vertex.get_index()):
+                # Antiparallel edges are added automatically in an undirected graph of pykwl.
+                wl_graph.add_edge(source_vertex_id, target_vertex.get_index())
     return wl_graph
 
 
@@ -51,7 +42,6 @@ class InstanceData:
     ssg: SuccessorStateGenerator
     problem: Problem
     problem_file_path: str
-    object_graph_factory: ObjectGraphFactory
     goal_distances: Dict[State, int]
     class_representatives: Dict[Any, State]
     class_representatives_by_state_id: Dict[int, State]
@@ -87,12 +77,13 @@ class Driver:
             max_num_states=self._max_num_states,
             sort_ascending_by_num_states=True)
         num_states = sum(state_space.get_num_states() for state_space in state_spaces)
-        print("[Generate data] Total number of states:", sum(state_space.get_num_states() for state_space in state_spaces))
+        self._logger.info(f"[Generate data] Total number of states: {sum(state_space.get_num_states() for state_space in state_spaces)}")
+        self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
         ### 2. Fetch memory from state spaces to create gfas using the same factories, aag, and ssg.
         memories = []
         for state_space in state_spaces:
-            memories.append((state_space.get_pddl_parser(), state_space.get_aag(), state_space.get_ssg()))
+            memories.append((state_space.get_problem(), state_space.get_pddl_factories(), state_space.get_aag(), state_space.get_ssg()))
 
         ### 3. Perform pairwise isomorphism reduction across instances.
         gfas = GlobalFaithfulAbstraction.create(
@@ -109,7 +100,8 @@ class Driver:
         for gfa in gfas:
             gfa_states.update(set(gfa.get_states()))
         num_gfa_states = len(gfa_states)
-        print("[Generate data] Total number of gfa states:", num_gfa_states)
+        self._logger.info(f"[Generate data] Total number of gfa states: {num_gfa_states}")
+        self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
         ### 5. Group gfa states by canonical initial coloring.
         # Assumption: if two object graphs have same canonical initial coloring
@@ -124,7 +116,8 @@ class Driver:
             v_star = int(fa.get_goal_distances()[fa_state.get_index()])
             isomorphism_certificate = fa_state.get_certificate()
             grouped_gfa_states[tuple(isomorphism_certificate.get_canonical_initial_coloring())].append(StateInformation(gfa_state, v_star))
-        print("[Generate data] Total number of gfa groups:", len(grouped_gfa_states))
+        self._logger.info(f"[Generate data] Total number of gfa groups: {len(grouped_gfa_states)}")
+        self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
         ### Important: return gfas since they own the memory to all data.
         return gfas, grouped_gfa_states, num_states, num_gfa_states
@@ -137,16 +130,12 @@ class Driver:
 
         wl = kwl.CanonicalColorRefinement(False)
 
-        ### Create an object graph factory for each problem.
-        # We need this, because objects across instances in pymimir are always considered different.
-        object_graph_factories: List[ObjectGraphFactory] = []
-        for gfa in gfas:
-            problem = gfa.get_pddl_parser().get_problem()
-            factories = gfa.get_pddl_parser().get_factories()
-            object_graph_factories.append(ObjectGraphFactory(problem, factories, self._mark_true_goal_literals))
-
         ### Fetch fas to access data underlying of gfa_states
         fas = gfas[0].get_abstractions()
+
+        color_functions: List[ProblemColorFunction] = []
+        for fa in fas:
+            color_functions.append(ProblemColorFunction(fa.get_problem()))
 
         for partition_id, gfa_states_group in enumerate(grouped_gfa_states.values()):
 
@@ -162,11 +151,12 @@ class Driver:
                     fa_index = gfa_state.get_faithful_abstraction_index()
                     fa_state_index = gfa_state.get_faithful_abstract_state_index()
                     fa = fas[fa_index]
-                    problem = fa.get_pddl_parser().get_problem()
-                    factories = fa.get_pddl_parser().get_factories()
+                    problem = fa.get_problem()
+                    factories = fa.get_pddl_factories()
                     fa_state = fa.get_states()[fa_state_index]
                     representative_state = fa_state.get_representative_state()
-                    object_graph = object_graph_factories[fa_index].create(representative_state)
+                    color_function = color_functions[fa_index]
+                    object_graph = create_object_graph(color_function, factories, problem, representative_state, self._mark_true_goal_literals)
 
                     ### How to print the representative concrete state
                     # print(representative_state.to_string(problem, factories))
@@ -231,20 +221,24 @@ class Driver:
                     wl1 = kwl.WeisfeilerLeman(1, self._ignore_counting)
 
                     fa_1: FaithfulAbstraction = fas[fa_index_1]
-                    problem_1 = fa_1.get_pddl_parser().get_problem()
-                    factories_1 = fa_1.get_pddl_parser().get_factories()
-                    problem_filepath_1 = fa_1.get_pddl_parser().get_problem_filepath()
+                    problem_1 = fa_1.get_problem()
+                    factories_1 = fa_1.get_pddl_factories()
+                    problem_filepath_1 = fa_1.get_problem().get_filepath()
                     fa_state_1: FaithfulAbstractState = fa_1.get_states()[fa_state_index_1]
                     representative_state_1 = fa_state_1.get_representative_state()
-                    object_graph_1 = object_graph_factories[fa_index_1].create(representative_state_1)
+                    print(fa_state_index_1, len(color_functions))
+                    color_function_1 = color_functions[fa_index_1]
+                    object_graph_1 = create_object_graph(color_function_1, factories_1, problem_1, representative_state_1, self._mark_true_goal_literals)
 
                     fa_2: FaithfulAbstraction = fas[fa_index_2]
-                    problem_2 = fa_2.get_pddl_parser().get_problem()
-                    factories_2 = fa_2.get_pddl_parser().get_factories()
-                    problem_filepath_2 = fa_1.get_pddl_parser().get_problem_filepath()
+                    problem_2 = fa_2.get_problem()
+                    factories_2 = fa_2.get_pddl_factories()
+                    problem_filepath_2 = fa_1.get_problem().get_filepath()
                     fa_state_2: FaithfulAbstractState = fa_2.get_states()[fa_state_index_2]
                     representative_state_2 = fa_state_2.get_representative_state()
-                    object_graph_2 = object_graph_factories[fa_index_2].create(representative_state_2)
+                    color_function_2 = color_functions[fa_index_2]
+                    object_graph_2 = create_object_graph(color_function_2, factories_2, problem_2, representative_state_2, self._mark_true_goal_literals)
+
 
                     wl_graph_1 = to_uvc_graph(object_graph_1)
                     wl_graph_2 = to_uvc_graph(object_graph_2)
@@ -315,12 +309,14 @@ class Driver:
         if not gfas:
             self._logger.info(f"[Pymimir] Got empty set of gfas. Aborting.")
             return
+        self._logger.info(f"[Pymimir] Peak memory usage: {int(memory_usage())} MiB.")
 
-        self._logger.info("[WL] Run validation...")
-        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_wl_correctness(gfas, grouped_gfa_states)
+        # Dominik (13-07-2024): Commented out the code to see memory consumption of just the data generation
+        #self._logger.info("[WL] Run validation...")
+        #total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_wl_correctness(gfas, grouped_gfa_states)
 
-        self._logger.info("[Results] Ran to completion.")
-        self._logger.info(f"[Results] Domain: {self._domain_file_path}")
-        self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
-        self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #P = {num_gfa_states}, #S = {num_states}, #C = {total_conflicts}, #V = {value_conflicts}, #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
-        self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")
+        #self._logger.info("[Results] Ran to completion.")
+        #self._logger.info(f"[Results] Domain: {self._domain_file_path}")
+        #self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
+        #self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #P = {num_gfa_states}, #S = {num_states}, #C = {total_conflicts}, #V = {value_conflicts}, #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
+        #self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")
