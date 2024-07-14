@@ -77,7 +77,7 @@ class Driver:
             max_num_states=self._max_num_states,
             sort_ascending_by_num_states=True)
         num_states = sum(state_space.get_num_states() for state_space in state_spaces)
-        self._logger.info(f"[Generate data] Total number of states: {sum(state_space.get_num_states() for state_space in state_spaces)}")
+        self._logger.info(f"[Generate data] Total number of states: {num_states}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
         ### 2. Fetch memory from state spaces to create gfas using the same factories, aag, and ssg.
@@ -102,6 +102,9 @@ class Driver:
         num_gfa_states = len(gfa_states)
         self._logger.info(f"[Generate data] Total number of gfa states: {num_gfa_states}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
+
+        # Dominik evaluate data generation step
+        exit(1)
 
         ### 5. Group gfa states by canonical initial coloring.
         # Assumption: if two object graphs have same canonical initial coloring
@@ -299,6 +302,7 @@ class Driver:
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
+        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
         print("Domain file:", self._domain_file_path)
         for i, problem_file_path in enumerate(self._problem_file_paths):
             print(f"Problem {i} file:", problem_file_path)
@@ -312,11 +316,11 @@ class Driver:
         self._logger.info(f"[Pymimir] Peak memory usage: {int(memory_usage())} MiB.")
 
         # Dominik (13-07-2024): Commented out the code to see memory consumption of just the data generation
-        #self._logger.info("[WL] Run validation...")
-        #total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_wl_correctness(gfas, grouped_gfa_states)
+        self._logger.info("[WL] Run validation...")
+        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_wl_correctness(gfas, grouped_gfa_states)
 
-        #self._logger.info("[Results] Ran to completion.")
-        #self._logger.info(f"[Results] Domain: {self._domain_file_path}")
-        #self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
-        #self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #P = {num_gfa_states}, #S = {num_states}, #C = {total_conflicts}, #V = {value_conflicts}, #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
-        #self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")
+        self._logger.info("[Results] Ran to completion.")
+        self._logger.info(f"[Results] Domain: {self._domain_file_path}")
+        self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
+        self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #P = {num_gfa_states}, #S = {num_states}, #C = {total_conflicts}, #V = {value_conflicts}, #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
+        self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")
