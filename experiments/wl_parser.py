@@ -53,12 +53,12 @@ class WLParser(Parser):
     """
     def __init__(self):
         super().__init__()
-        self.add_pattern("num_final_states", r".*\[Results\] Table row: \[#P = (\d+), .*", type=int)
-        self.add_pattern("num_total_states", r".*\[Results\] Table row: \[#P = \d+, #S = (\d+), .*", type=int)
-        self.add_pattern("num_1fwl_total_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #C = \[(\d+), \d+\], .*", type=int)
-        self.add_pattern("num_2fwl_total_conflicts", r".*\[Results\] Table row: \[ #P = \d+, #S = \d+, #C = \[\d+, (\d+)\], .*", type=int)
-        self.add_pattern("num_1fwl_total_value_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #C = \[\d+, \d+\], #V = \[(\d+), \d+\], .*", type=int)
-        self.add_pattern("num_2fwl_total_value_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #C = \[\d+, \d+\], #V = \[\d+, (\d+)\], .*", type=int)
+        self.add_pattern("num_final_states", r".*\[Results\] Table row: \[#P = (\d+).*", type=int)
+        self.add_pattern("num_total_states", r".*\[Results\] Table row: \[#P = \d+, #S = (\d+).*", type=int)
+        self.add_pattern("num_1fwl_total_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #I = \[\d+, \d+\], #C = \[(\d+), \d+\].*", type=int)
+        self.add_pattern("num_2fwl_total_conflicts", r".*\[Results\] Table row: \[ #P = \d+, #S = \d+, #I = \[\d+, \d+\], #C = \[\d+, (\d+)\].*", type=int)
+        self.add_pattern("num_1fwl_total_value_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #I = \[\d+, \d+\], #C = \[\d+, \d+\], #V = \[(\d+), \d+\].*", type=int)
+        self.add_pattern("num_2fwl_total_value_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #I = \[\d+, \d+\], #C = \[\d+, \d+\], #V = \[\d+, (\d+)\].*", type=int)
 
         self.add_function(coverage)
         self.add_function(adapt_booleans)

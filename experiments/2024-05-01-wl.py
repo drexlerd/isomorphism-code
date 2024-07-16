@@ -70,7 +70,7 @@ else:
         "grid:p-0-0-100-1-3-3-0.pddl",
         "gripper:p-1-0.pddl",
         "hiking:p-1-1-1-0.pddl",
-        "logistics:p-2-2-2-2-2-0.pddl",
+        "logistics:p-1-2-2-2-2-19.pddl",
         "miconic:p-2-1-0.pddl",
         "reward:instance_2x2_0.pddl",
         "rovers:p-1-1-1-1-2-2.pddl",
@@ -78,7 +78,7 @@ else:
         "spanner:p-1-1-1-0.pddl",
         "visitall:p-1-0.5-2-0.pddl",
     ]
-    TIME_LIMIT = 10
+    TIME_LIMIT = 30
 ATTRIBUTES = [
     "run_dir",
     Attribute("coverage", absolute=True, min_wins=False, scale="linear"),
@@ -111,7 +111,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_wl",
-        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}"],
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--max-num-states", "1000000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -141,7 +141,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_wl",
-        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--ignore-counting"],
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--max-num-states", "1000000", "--ignore-counting"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -171,7 +171,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_wl",
-        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--mark-true-goal-atoms"],
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--max-num-states", "1000000", "--mark-true-goal-atoms"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -201,7 +201,7 @@ for task in suites.build_suite(BENCHMARKS_DIR, SUITE):
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_wl",
-        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--ignore-counting", "--mark-true-goal-atoms"],
+        ["python", "{main_script}", "wl", "--domain_file_path", "{domain}", "--problem_file_path", "{problem}", "--max-num-states", "1000000", "--ignore-counting", "--mark-true-goal-atoms"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
