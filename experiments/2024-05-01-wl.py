@@ -82,14 +82,14 @@ else:
 ATTRIBUTES = [
     "run_dir",
     Attribute("coverage", absolute=True, min_wins=False, scale="linear"),
-    Attribute("num_states", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_partitions", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_final_states", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_total_states", absolute=True, min_wins=True, scale="linear"),
     Attribute("is_1fwl_valid", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_1fwl_total_conflicts", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_1fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_1fwl_total_value_conflicts", absolute=True, min_wins=True, scale="linear"),
     Attribute("is_2fwl_valid", absolute=True, min_wins=True, scale="linear"),
     Attribute("num_2fwl_total_conflicts", absolute=True, min_wins=True, scale="linear"),
-    Attribute("num_2fwl_value_conflicts", absolute=True, min_wins=True, scale="linear"),
+    Attribute("num_2fwl_total_value_conflicts", absolute=True, min_wins=True, scale="linear"),
 ]
 
 MEMORY_LIMIT = 12000

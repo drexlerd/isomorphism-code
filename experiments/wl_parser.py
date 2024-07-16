@@ -11,23 +11,21 @@ def coverage(content, props):
         (num_1fwl_conflicts is not None and num_1fwl_conflicts > 0 and num_2fwl_conflicts is not None))
 
 def adapt_booleans(content, props):
-    is_1fwl_valid = props.get("is_1fwl_valid", None)
-    if is_1fwl_valid is not None:
-        if is_1fwl_valid == "True":
-            props["is_1fwl_valid"] = 1
-        elif is_1fwl_valid == "False":
-            props["is_1fwl_valid"] = 0
-        else:
-            raise RuntimeError("Unexpected string in is_1fwl_valid: ", is_1fwl_valid)
+    num_1fwl_conflicts = props.get("num_1fwl_total_conflicts", None)
+    num_2fwl_conflicts = props.get("num_2fwl_total_conflicts", None)
 
-    is_2fwl_valid = props.get("is_2fwl_valid", None)
-    if is_2fwl_valid:
-        if is_2fwl_valid == "True":
-            props["is_2fwl_valid"] = 1
-        elif is_2fwl_valid == "False":
-            props["is_2fwl_valid"] = 0
+    if num_1fwl_conflicts is not None:
+        if num_1fwl_conflicts == 0:
+            props["is_1fwl_valid"] = 1
         else:
-            raise RuntimeError("Unexpected string in is_2fwl_valid: ", is_2fwl_valid)
+            props["is_1fwl_valid"] = 0
+
+    if "is_1fwl_valid" in props and props["is_1fwl_valid"] == 0 and num_2fwl_conflicts is not None:
+        if num_2fwl_conflicts == 0:
+            props["is_2fwl_valid"] = 1
+        else:
+            props["is_2fwl_valid"] = 0
+
 
 class WLParser(Parser):
     """
@@ -50,17 +48,17 @@ class WLParser(Parser):
     2024-04-18 15:39:47,981 - [1-FWL, UVC] Valid: False; Conflicts: 30
     2024-04-18 15:39:47,982 - [2-FWL, UVC] Validating...
     2024-04-18 15:40:44,013 - [2-FWL, UVC] Valid: True; Conflicts: 0
+
+    2024-07-16 14:36:31,946 - [Results] Table row: [#P = 18, #S = 88, #I = [1, 0], #C = [0, 0], #V = [0, 0]]
     """
     def __init__(self):
         super().__init__()
-        self.add_pattern("num_states", r".*\[Preprocessing\] States: (.+)", type=int)
-        self.add_pattern("num_partitions", r".*\[Nauty\] Partitions: (.+)", type=int)
-        self.add_pattern("is_1fwl_valid", r".*\[1-FWL, UVC\] Valid: (.+); Total Conflicts: .+; Value Conflicts: .+", type=str)
-        self.add_pattern("num_1fwl_total_conflicts", r".*\[1-FWL, UVC\] Valid: .+; Total Conflicts: (.+); Value Conflicts: .+", type=int)
-        self.add_pattern("num_1fwl_value_conflicts", r".*\[1-FWL, UVC\] Valid: .+; Total Conflicts: .+; Value Conflicts: (.+)", type=int)
-        self.add_pattern("is_2fwl_valid", r".*\[2-FWL, UVC\] Valid: (.+); Total Conflicts: .+; Value Conflicts: .+", type=str)
-        self.add_pattern("num_2fwl_total_conflicts", r".*\[2-FWL, UVC\] Valid: .+; Total Conflicts: (.+); Value Conflicts: .+", type=int)
-        self.add_pattern("num_2fwl_value_conflicts", r".*\[2-FWL, UVC\] Valid: .+; Total Conflicts: .+; Value Conflicts: (.+)", type=int)
+        self.add_pattern("num_final_states", r".*\[Results\] Table row: \[#P = (\d+), .*", type=int)
+        self.add_pattern("num_total_states", r".*\[Results\] Table row: \[#P = \d+, #S = (\d+), .*", type=int)
+        self.add_pattern("num_1fwl_total_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #C = \[(\d+), \d+\], .*", type=int)
+        self.add_pattern("num_2fwl_total_conflicts", r".*\[Results\] Table row: \[ #P = \d+, #S = \d+, #C = \[\d+, (\d+)\], .*", type=int)
+        self.add_pattern("num_1fwl_total_value_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #C = \[\d+, \d+\], #V = \[(\d+), \d+\], .*", type=int)
+        self.add_pattern("num_2fwl_total_value_conflicts", r".*\[Results\] Table row: \[#P = \d+, #S = \d+, #C = \[\d+, \d+\], #V = \[\d+, (\d+)\], .*", type=int)
 
         self.add_function(coverage)
         self.add_function(adapt_booleans)

@@ -26,6 +26,7 @@ class Driver:
         add_console_handler(self._logger)
 
     def _generate_data(self) -> Tuple[StateSpace, FaithfulAbstraction]:
+        print(self._max_num_states)
         state_space = StateSpace.create(
             str(self._domain_file_path),
             str(self._problem_file_path),
@@ -34,6 +35,7 @@ class Driver:
             max_num_states=self._max_num_states)
 
         if state_space is None:
+            print("State space is none")
             return None
 
         faithful_abstraction = FaithfulAbstraction.create(

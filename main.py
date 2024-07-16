@@ -8,7 +8,7 @@ from pathlib import Path
 print(sys.executable)
 
 def add_max_num_states_options(arg_parser: argparse.ArgumentParser):
-    arg_parser.add_argument("--max-num-states", default=10_000, help="The maximum number of states.", type=int)
+    arg_parser.add_argument("--max-num-states", default=100_000, help="The maximum number of states.", type=int)
 
 def add_enable_pruning_options(arg_parser: argparse.ArgumentParser):
     arg_parser.add_argument("--enable-pruning", action="store_true", help="If specified, only a single representative for each equivalence is kept in a breadth-first-search.")
