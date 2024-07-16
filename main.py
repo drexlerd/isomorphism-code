@@ -37,7 +37,7 @@ if __name__ == "__main__":
     add_pddl_options(wl_parser)
     add_verbosity_option(wl_parser)
     add_max_num_states_options(wl_parser)
-    add_dump_dot_option(wl_parser)
+    add_enable_pruning_options(wl_parser)
     wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
     wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
     wl_parser.add_argument("--terminate-early", action="store_true", help="If specified, terminate if colors distinguish partitions.")
@@ -65,6 +65,8 @@ if __name__ == "__main__":
             Path(args.domain_file_path).absolute(),
             Path(args.problem_file_path).absolute(),
             args.verbosity,
+            args.enable_pruning,
+            args.max_num_states,
             args.ignore_counting,
             args.mark_true_goal_atoms)
     elif args.type == "pairwise-wl":

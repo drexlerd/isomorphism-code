@@ -1,6 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
-from pymimir import PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, SparseNautyGraph, VertexColoredDigraph, ProblemColorFunction, create_object_graph, compute_vertex_colors
+from pymimir import PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, SparseNautyGraph, VertexColoredDigraph, ProblemColorFunction, create_object_graph
 from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
@@ -8,30 +8,9 @@ import subprocess
 
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
+from .pykwl_utils import to_uvc_graph
 
 import pykwl as kwl
-
-
-def to_uvc_graph(object_graph: VertexColoredDigraph) -> kwl.EdgeColoredGraph:
-    wl_graph = kwl.EdgeColoredGraph(False)
-
-    vertex_colors = compute_vertex_colors(object_graph)
-    sorted_vertex_colors = sorted(vertex_colors)
-    color_remap = dict()
-    for color in sorted_vertex_colors:
-        if color not in color_remap:
-            color_remap[color] = len(color_remap)
-
-    # Copy vertices and edges. The indices remain identical.
-    for vertex_id in range(object_graph.get_num_vertices()):
-        wl_graph.add_node(color_remap[vertex_colors[vertex_id]] + 1)  # coloring must start at 1
-
-    for source_vertex_id in range(object_graph.get_num_vertices()):
-        for target_vertex in object_graph.get_targets(source_vertex_id):
-            if (source_vertex_id < target_vertex.get_index()):
-                # Antiparallel edges are added automatically in an undirected graph of pykwl.
-                wl_graph.add_edge(source_vertex_id, target_vertex.get_index())
-    return wl_graph
 
 
 @dataclass
@@ -102,9 +81,6 @@ class Driver:
         num_gfa_states = len(gfa_states)
         self._logger.info(f"[Generate data] Total number of gfa states: {num_gfa_states}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
-
-        # Dominik evaluate data generation step
-        exit(1)
 
         ### 5. Group gfa states by canonical initial coloring.
         # Assumption: if two object graphs have same canonical initial coloring
@@ -229,7 +205,6 @@ class Driver:
                     problem_filepath_1 = fa_1.get_problem().get_filepath()
                     fa_state_1: FaithfulAbstractState = fa_1.get_states()[fa_state_index_1]
                     representative_state_1 = fa_state_1.get_representative_state()
-                    print(fa_state_index_1, len(color_functions))
                     color_function_1 = color_functions[fa_index_1]
                     object_graph_1 = create_object_graph(color_function_1, factories_1, problem_1, representative_state_1, self._mark_true_goal_literals)
 
@@ -303,17 +278,16 @@ class Driver:
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
         self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
-        print("Domain file:", self._domain_file_path)
+        self._logger.info("[Configuration] Domain file: {self._domain_file_path}")
         for i, problem_file_path in enumerate(self._problem_file_paths):
-            print(f"Problem {i} file:", problem_file_path)
-        print()
+            self._logger.info(f"[Configuration] Problem {i} file: {problem_file_path}")
 
         self._logger.info("[Pymimir] Generating pairwise non isomorphic states.")
         gfas, grouped_gfa_states, num_states, num_gfa_states = self._generate_data()
+        self._logger.info(f"[Pymimir] Peak memory usage: {int(memory_usage())} MiB.")
         if not gfas:
             self._logger.info(f"[Pymimir] Got empty set of gfas. Aborting.")
             return
-        self._logger.info(f"[Pymimir] Peak memory usage: {int(memory_usage())} MiB.")
 
         # Dominik (13-07-2024): Commented out the code to see memory consumption of just the data generation
         self._logger.info("[WL] Run validation...")

@@ -1,202 +1,239 @@
-import pykwl as kwl
-
-from collections import defaultdict
+from collections import defaultdict, deque
 from pathlib import Path
-from pymimir import Atom, Domain, DomainParser, GroundedSuccessorGenerator, Problem, ProblemParser, State, StateSpace
-from tqdm import tqdm
-from typing import List, Tuple, Union
+from pymimir import State, StateSpace, FaithfulAbstraction, ProblemColorFunction, create_object_graph
+from typing import List, Tuple, Union, Deque, Dict
+from itertools import combinations
+from dataclasses import dataclass
 
+from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
-from .state_graph import StateGraph
-from .color_function import KeyToInt
-from .exact import create_pynauty_undirected_vertex_colored_graph, compute_nauty_certificate
+from .pykwl_utils import to_uvc_graph
 
-
-def to_uvc_graph(state: State, coloring_function : KeyToInt, mark_true_goal_atoms: bool) -> kwl.Graph:
-    state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms)
-    uvc_vertices = state_graph.uvc_graph.vertices
-    uvc_edges = state_graph.uvc_graph.adj_list
-    to_wl_vertex = {}
-    wl_graph = kwl.Graph(False)
-    for vertex_id, vertex_data in uvc_vertices.items():
-        to_wl_vertex[vertex_id] = wl_graph.add_node(vertex_data.color.value)
-    for vertex_id, adjacent_ids in uvc_edges.items():
-        for adjacent_id in adjacent_ids:
-            wl_graph.add_edge(to_wl_vertex[vertex_id], to_wl_vertex[adjacent_id])
-    return wl_graph
-
-
-# def to_dec_graph(state: State) -> kwl.Graph:
-#     wl_graph = kwl.Graph(True)
-#     to_wl_vertex = {}
-#     # Add nodes.
-#     for object in state.get_problem().objects:
-#         to_wl_vertex[object] = wl_graph.add_node()
-#     # Helper function for adding edges.
-#     def add_labeled_edge(atom: Atom, offset: int):
-#         # Nullary atoms are added as self-edges for all vertices.
-#         if atom.predicate.arity == 0:
-#             for vertex in to_wl_vertex.values():
-#                 wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
-#         # Unary atoms are added as self-edges.
-#         elif atom.predicate.arity == 1:
-#             vertex = to_wl_vertex[atom.terms[0]]
-#             wl_graph.add_edge(vertex, vertex, atom.predicate.id + offset)
-#         # Binary atoms are added as directed edges.
-#         elif atom.predicate.arity == 2:
-#             src_vertex = to_wl_vertex[atom.terms[0]]
-#             dst_vertex = to_wl_vertex[atom.terms[1]]
-#             wl_graph.add_edge(src_vertex, dst_vertex, atom.predicate.id + offset)
-#         else:
-#             raise RuntimeError("ternary predicate")
-#     # Add edges.
-#     try:
-#         # Add state edges.
-#         for atom in state.get_atoms():
-#             add_labeled_edge(atom, 0)
-#         # Add goal edges.
-#         for literal in state.get_problem().goal:
-#             assert not literal.negated
-#             add_labeled_edge(literal.atom, len(state.get_problem().domain.predicates))
-#         # Add types
-#         if len(state.get_problem().domain.types) > 1:
-#             raise NotImplementedError()
-#         return wl_graph
-#     except:
-#         return None
+import pykwl as kwl
 
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, ignore_counting: bool, mark_true_goal_atoms: bool):
+    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, ignore_counting: bool, mark_true_goal_atoms: bool):
         self._domain_file_path = domain_file_path
         self._problem_file_path = problem_file_path
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
+        self._enable_pruning = enable_pruning
+        self._max_num_states = max_num_states
         self._ignore_counting = ignore_counting
         self._mark_true_goal_atoms = mark_true_goal_atoms
         add_console_handler(self._logger)
 
+    def _generate_data(self) -> Tuple[StateSpace, FaithfulAbstraction]:
+        state_space = StateSpace.create(
+            str(self._domain_file_path),
+            str(self._problem_file_path),
+            use_unit_cost_one=True,
+            remove_if_unsolvable=True,
+            max_num_states=self._max_num_states)
 
-    def _parse_instance(self) -> Tuple[Domain, Problem]:
-        domain_parser = DomainParser(str(self._domain_file_path))
-        problem_parser = ProblemParser(str(self._problem_file_path))
-        domain = domain_parser.parse()
-        problem = problem_parser.parse(domain)
-        return domain, problem
+        if state_space is None:
+            return None
 
+        faithful_abstraction = FaithfulAbstraction.create(
+            state_space.get_problem(),
+            state_space.get_pddl_factories(),
+            state_space.get_aag(),
+            state_space.get_ssg(),
+            self._mark_true_goal_atoms,
+            use_unit_cost_one=True,
+            remove_if_unsolvable=True,
+            compute_complete_abstraction_mapping=False)
 
-    def _generate_state_space(self, problem: Problem) -> Union[StateSpace, None]:
-        successor_generator = GroundedSuccessorGenerator(problem)
-        return StateSpace.new(problem, successor_generator, 1_000_000)
+        if faithful_abstraction is None:
+            return None
 
+        return (state_space, faithful_abstraction)
 
-    def _partition_with_nauty(self, states: List[State], coloring_function: KeyToInt, progress_bar: bool) -> List[List[State]]:
-        partitions = defaultdict(list)
-        for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
-            state_graph = StateGraph(state, coloring_function, mark_true_goal_atoms=False)
-            nauty_certificate = compute_nauty_certificate(create_pynauty_undirected_vertex_colored_graph(state_graph.uvc_graph))
-            exact_key = (nauty_certificate, state_graph.uvc_graph.get_color_histogram())
-            partitions[exact_key].append(state)
+    def _validate_wl_correctness_iteratively(self, k: int, state_space: StateSpace, fa: FaithfulAbstraction, partition: List[Tuple[State, int, kwl.EdgeColoredGraph]]):
+        """ The idea of the iterative solution is to run a standard DFS.
+            Each node gets it own instantiation of WL because the colors in such a partition are identical.
+        """
 
-        return list(partitions.values())
-
-
-    def _partition_with_wl(self, states: List[State], k: int, to_graph, progress_bar: bool) -> List[List[State]]:
-        partitions = defaultdict(list)
-        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
-        for state in tqdm(states, mininterval=0.5, disable=not progress_bar):
-            wl_graph = to_graph(state)
-            num_iterations, colors, counts = wl.compute_coloring(wl_graph)
-            coloring = (num_iterations, tuple(colors), tuple(counts))
-            partitions[coloring].append(state)
-        return list(partitions.values())
-
-
-    def _validate_wl_correctness(self, state_space: StateSpace, partitions: List[List[State]], k: int, to_graph, progress_bar: bool) -> Tuple[bool, int]:
-        # Check whether the to_graph function can handle states of this sort.
-        if to_graph(partitions[0][0]) is None: return False, -1
-        # Test representatives from each partition to see if two are mapped to the same class.
-        correct = True
         total_conflicts = 0
         value_conflicts = 0
+        max_num_iterations = 0
+
+        @dataclass
+        class SearchNode:
+            wl : kwl.WeisfeilerLeman
+            partition: List[Tuple[int, State, int, kwl.EdgeColoredGraph, kwl.GraphColoring, kwl.GraphColoring]]
+            num_previous_iterations: int
+
+        partition_ext = []
         wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
-        state_colorings = {}
-        for partition in tqdm(partitions, mininterval=0.5, disable=not progress_bar):
-            representative = partition[0]
-            wl_graph = to_graph(representative)
-            num_iterations, colors, counts = wl.compute_coloring(wl_graph)
-            coloring = (num_iterations, tuple(colors), tuple(counts))
-            if coloring in state_colorings:
-                state_value = state_space.get_distance_to_goal_state(state_colorings[coloring])
-                state_atoms = state_colorings[coloring].get_atoms()
-                representative_value = state_space.get_distance_to_goal_state(representative)
-                representative_atoms = representative.get_atoms()
-                self._logger.info(f"[{k}-FWL] Conflict!")
-                self._logger.info(f" > Goal: {representative.get_problem().goal}")
-                self._logger.info(f" > Cost: {state_value}; State: {state_atoms}")
-                self._logger.info(f" > Cost: {representative_value}; State: {representative_atoms}")
-                correct = False
-                total_conflicts += 1
-                value_conflicts += 1 if state_value != representative_value else 0
-            else:
-                state_colorings[coloring] = representative
-        return correct, total_conflicts, value_conflicts
+        for state, v_star, kwl_graph in partition:
+            current_coloring = wl.compute_initial_coloring(kwl_graph)
+            # We only care data compatibility between current and next coloring, so we can call compute_initial_coloring again.
+            next_coloring = wl.compute_initial_coloring(kwl_graph)
+            partition_ext.append((state, v_star, kwl_graph, current_coloring, next_coloring))
+
+        queue : Deque[SearchNode] = deque()
+        queue.append(SearchNode(wl, partition_ext, 0))
+
+        while queue:
+            cur_node = queue.pop()
+            cur_wl = cur_node.wl
+            cur_partition = cur_node.partition
+            cur_num_prev_iterations = cur_node.num_previous_iterations
+
+            # 1.1 Run 1-WL until colors start divering
+            is_stable_state = dict()
+            for state, v_star, kwl_graph, current_coloring, next_coloring in cur_partition:
+                is_stable_state[state] = False
+
+            num_iterations = cur_num_prev_iterations
+
+            colorings = set()
+
+            colorings_by_state = dict()
+
+            while True:
+                all_stable = True
+
+                num_iterations += 1
+                max_num_iterations = max(max_num_iterations, num_iterations)
+
+                next_partition = []
+                for element in cur_partition:
+                    state, v_star, kwl_graph, current_coloring, next_coloring = element
+
+                    if is_stable_state[state]:
+                        next_partition.append(element)
+                        continue
+
+                    is_stable = cur_wl.compute_next_coloring(kwl_graph, current_coloring, next_coloring)
+
+                    if is_stable:
+                        is_stable_state[state] = True
+                    else:
+                        all_stable = False
+
+                    colors, counts = next_coloring.get_frequencies()
+                    coloring = (num_iterations, tuple(colors), tuple(counts))
+                    colorings.add(coloring)
+                    colorings_by_state[state] = coloring
+
+                    # swap current and next coloring
+                    next_partition.append((state, v_star, kwl_graph, next_coloring, current_coloring))
+
+                cur_partition = next_partition
+
+                if len(colorings) > 1:
+                    # Detected diverging state colorings
+                    break
+
+                if all_stable:
+                    # All are stable
+                    break
+
+            # 1.2 Compute the new partitioning
+            partitioning = defaultdict(list)
+            for (state, v_star, wl_graph, current_coloring, next_coloring) in cur_partition:
+                coloring = colorings_by_state[state]
+
+                partitioning[coloring].append((state, v_star, wl_graph, current_coloring, next_coloring))
+
+            # 2. Recursively refine new partitioning
+            for coloring, sub_partition in partitioning.items():
+                if len(sub_partition) == 1:
+                    # Base case 1: partition is singleton set. There cannot be any conflicts.
+                    pass
+                elif all(is_stable_state[state] for state, _, _, _, _ in sub_partition):
+                    # Base case 2: all colors in the partition are stable
+
+                    if len(sub_partition) > 1:
+
+                        for (state_1, v_star_1, _, _, _), (state_2, v_star_2, _, _, _) in combinations(sub_partition, 2):
+
+                            if v_star_1 != v_star_2:
+                                value_conflicts += 1
+                                self._logger.info(f"[{k}-FWL] Value conflict!")
+                            else:
+                                self._logger.info(f"[{k}-FWL] Conflict!")
+                            total_conflicts += 1
+
+
+                            self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.to_string(fa.get_problem(), fa.get_pddl_factories())}")
+                            self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.to_string(fa.get_problem(), fa.get_pddl_factories())}")
+                            self._logger.info(f"Goal 1: fluent={[str(literal) for literal in fa.get_problem().get_fluent_goal_condition()]}, derived={[str(literal) for literal in fa.get_problem().get_derived_goal_condition()]}, static={[str(literal) for literal in fa.get_problem().get_static_goal_condition()]}")
+                            self._logger.info(f"Goal 2: fluent={[str(literal) for literal in fa.get_problem().get_fluent_goal_condition()]}, derived={[str(literal) for literal in fa.get_problem().get_derived_goal_condition()]}, static={[str(literal) for literal in fa.get_problem().get_static_goal_condition()]}")
+
+
+                else:
+                    # Inductive case:
+
+                    queue.append(SearchNode(kwl.WeisfeilerLeman(k, self._ignore_counting), sub_partition, num_iterations))
+
+            # self._logger.info(f"Finished partition with color function size {wl.get_coloring_function_size()}")
+
+        return total_conflicts, value_conflicts, max_num_iterations
+
+
+    def _validate_wl_correctness(self, k: int, state_space: StateSpace, faithful_abstraction: FaithfulAbstraction) -> Tuple[int, int, int]:
+        # Test representatives from each partition to see if two are mapped to the same class.
+
+        total_conflicts = 0
+        value_conflicts = 0
+        max_num_iterations = 0
+
+        initial_partitionings: Dict[Tuple[int], List[Tuple[int, State, kwl.EdgeColoredGraph]]] = defaultdict(list)
+        color_function = ProblemColorFunction(state_space.get_problem())
+        goal_distances = faithful_abstraction.get_goal_distances()
+        for abstract_state in faithful_abstraction.get_states():
+            certificate = abstract_state.get_certificate()
+            v_star = goal_distances[abstract_state.get_index()]
+            state = abstract_state.get_representative_state()
+            object_graph = create_object_graph(color_function, state_space.get_pddl_factories(), state_space.get_problem(), state, self._mark_true_goal_atoms)
+            kwl_graph = to_uvc_graph(object_graph)
+
+            initial_partitionings[tuple(certificate.get_canonical_initial_coloring())].append((state, v_star, kwl_graph))
+
+        for canonical_initial_coloring, initial_partition in initial_partitionings.items():
+
+            self._logger.info(f"Processing partitioning with canonical initial coloring {canonical_initial_coloring}")
+
+            total_conflicts_i, value_conflicts_i, max_num_iterations_i = self._validate_wl_correctness_iteratively(k, state_space, faithful_abstraction, initial_partition)
+            total_conflicts += total_conflicts_i
+            value_conflicts += value_conflicts_i
+            max_num_iterations = max(max_num_iterations, max_num_iterations_i)
+
+        return total_conflicts, value_conflicts, max_num_iterations
 
 
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
-        print("Domain file:", self._domain_file_path)
-        print("Problem file:", self._problem_file_path)
-        print()
+        """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
+        """
+        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_atoms}]")
+        self._logger.info(f"[Configuration] Domain file: {self._domain_file_path}")
+        self._logger.info(f"[Configuration] Problem file: {self._problem_file_path}")
 
-        _, problem = self._parse_instance()
-        progress_bar = self._verbosity == "DEBUG"
-
-        # Generate the state space we will analyze.
-        self._logger.info("[Preprocessing] Generating state space...")
-        state_space = self._generate_state_space(problem)
-
-        if state_space is None:
-            self._logger.info(f"[Preprocessing] State space is too large. Aborting.")
+        self._logger.info("[Pymimir] Generating pairwise non isomorphic states.")
+        data = self._generate_data()
+        self._logger.info(f"[Pymimir] Peak memory usage: {int(memory_usage())} MiB.")
+        if data is None:
+            self._logger.info(f"[Pymimir] Got empty set of gfas. Aborting.")
             return
 
-        states = state_space.get_states()
-        self._logger.info(f"[Preprocessing] States: {len(states)}")
+        state_space, faithful_abstraction = data
 
-        # Generate exact equivalence classes.
-        coloring_function = KeyToInt()
+        total_conflicts = [0, 0]
+        value_conflicts = [0, 0]
+        max_num_iterations = [0, 0]
+        self._logger.info("[1-WL] Run validation...")
+        total_conflicts[0], value_conflicts[0], max_num_iterations[0] = self._validate_wl_correctness(1, state_space, faithful_abstraction)
+        if total_conflicts[0] > 0:
+            self._logger.info("[2-FWL] Run validation...")
+            total_conflicts[1], value_conflicts[1], max_num_iterations[1] = self._validate_wl_correctness(2, state_space, faithful_abstraction)
 
-        self._logger.info("[Nauty] Computing...")
-        partitions = self._partition_with_nauty(states, coloring_function, progress_bar)
-        self._logger.info(f"[Nauty] Partitions: {len(partitions)}")
-
-        # If WL is implemented correctly, then validating correctness the way we do is safe.
-        # However, double check by partitioning with WL and if more partitions than with Nauty is found, then something is wrong.
-        if self._verbosity == "DEBUG":
-            def run_partition_config(k: int):
-                uvc_c_org_wl_1_partitions_wl = self._partition_with_wl(states, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
-                tag = f"DEBUG, UVC"
-                self._logger.info(f"[{tag}] {k}-WL partitions: {len(uvc_c_org_wl_1_partitions_wl)}")
-
-            # 1-FWL
-            run_partition_config(1)
-
-            # 2-FWL
-            run_partition_config(2)
-
-        def run_validation_config(k: int) -> bool:
-            correct, total_conflicts, value_conflicts = self._validate_wl_correctness(state_space, partitions, k, lambda state: to_uvc_graph(state, coloring_function, self._mark_true_goal_atoms), progress_bar)
-            tag = f"{k}-FWL, UVC"
-            if (not correct) and (total_conflicts < 0): self._logger.info(f"[{tag}] Graph cannot be constructed. Skipping.")
-            else: self._logger.info(f"[{tag}] Valid: {correct}; Total Conflicts: {total_conflicts}; Value Conflicts: {value_conflicts}")
-            return correct
-
-        # 1-FWL
-        valid_1ff = run_validation_config(1)
-
-        # 2-FWL
-        if not valid_1ff: run_validation_config(2)
-
-        self._logger.info("Ran to completion.")
+        self._logger.info("[Results] Ran to completion.")
+        self._logger.info(f"[Results] Domain: {self._domain_file_path}")
+        self._logger.info(f"[Results] Table row: [#P = {faithful_abstraction.get_num_states()}, #S = {state_space.get_num_states()}, #I = {max_num_iterations}, #C = {total_conflicts}, #V = {value_conflicts}]")
