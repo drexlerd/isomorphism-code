@@ -1,6 +1,6 @@
 from collections import defaultdict, deque
 from pathlib import Path
-from pymimir import State, StateSpace, FaithfulAbstraction, ProblemColorFunction, create_object_graph
+from pymimir import State, StateSpaceOptions, StateSpace, FaithfulAbstractionOptions, FaithfulAbstraction, ProblemColorFunction, create_object_graph
 from typing import List, Tuple, Union, Deque, Dict
 from itertools import combinations
 from dataclasses import dataclass
@@ -26,27 +26,30 @@ class Driver:
         add_console_handler(self._logger)
 
     def _generate_data(self) -> Tuple[StateSpace, FaithfulAbstraction]:
-        print(self._max_num_states)
+        state_space_options = StateSpaceOptions()
+        state_space_options.use_unit_cost_one = True
+        state_space_options.remove_if_unsolvable = True
+        state_space_options.max_num_states = self._max_num_states
         state_space = StateSpace.create(
             str(self._domain_file_path),
             str(self._problem_file_path),
-            use_unit_cost_one=True,
-            remove_if_unsolvable=True,
-            max_num_states=self._max_num_states)
+            state_space_options)
 
         if state_space is None:
             print("State space is none")
             return None
 
+        faithful_abstraction_options = FaithfulAbstractionOptions()
+        faithful_abstraction_options.mark_true_goal_literals = self._mark_true_goal_atoms
+        faithful_abstraction_options.use_unit_cost_one = True
+        faithful_abstraction_options.remove_if_unsolvable = True
+        faithful_abstraction_options.compute_complete_abstraction_mapping = False
         faithful_abstraction = FaithfulAbstraction.create(
             state_space.get_problem(),
             state_space.get_pddl_factories(),
             state_space.get_aag(),
             state_space.get_ssg(),
-            self._mark_true_goal_atoms,
-            use_unit_cost_one=True,
-            remove_if_unsolvable=True,
-            compute_complete_abstraction_mapping=False)
+            faithful_abstraction_options)
 
         if faithful_abstraction is None:
             return None

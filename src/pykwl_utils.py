@@ -1,9 +1,9 @@
 import pykwl as kwl
 
-from pymimir import VertexColoredDigraph, compute_vertex_colors
+from pymimir import StaticVertexColoredDigraph, compute_vertex_colors
 
 
-def to_uvc_graph(object_graph: VertexColoredDigraph) -> kwl.EdgeColoredGraph:
+def to_uvc_graph(object_graph: StaticVertexColoredDigraph) -> kwl.EdgeColoredGraph:
     wl_graph = kwl.EdgeColoredGraph(False)
 
     vertex_colors = compute_vertex_colors(object_graph)
@@ -18,8 +18,8 @@ def to_uvc_graph(object_graph: VertexColoredDigraph) -> kwl.EdgeColoredGraph:
         wl_graph.add_node(color_remap[vertex_colors[vertex_id]] + 1)  # coloring must start at 1
 
     for source_vertex_id in range(object_graph.get_num_vertices()):
-        for target_vertex in object_graph.get_targets(source_vertex_id):
-            if (source_vertex_id < target_vertex.get_index()):
+        for target_vertex_index in object_graph.get_forward_adjacent_vertex_indices(source_vertex_id):
+            if (source_vertex_id < target_vertex_index):
                 # Antiparallel edges are added automatically in an undirected graph of pykwl.
-                wl_graph.add_edge(source_vertex_id, target_vertex.get_index())
+                wl_graph.add_edge(source_vertex_id, target_vertex_index)
     return wl_graph

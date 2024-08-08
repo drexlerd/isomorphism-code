@@ -1,6 +1,6 @@
 from collections import defaultdict
 from pathlib import Path
-from pymimir import PDDLParser, IAAG, SuccessorStateGenerator, Problem, State, StateSpace, FaithfulAbstractState, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, SparseNautyGraph, VertexColoredDigraph, ProblemColorFunction, create_object_graph
+from pymimir import PDDLParser, IApplicableActionGenerator, StateRepository, Problem, State, StateSpacesOptions, StateSpace, FaithfulAbstractState, FaithfulAbstractionsOptions, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, SparseNautyGraph, StaticVertexColoredDigraph, ProblemColorFunction, create_object_graph
 from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
@@ -17,8 +17,8 @@ import pykwl as kwl
 class InstanceData:
     id: int
     parser: PDDLParser
-    aag: IAAG
-    ssg: SuccessorStateGenerator
+    applicable_action_generator: IApplicableActionGenerator
+    state_repository: StateRepository
     problem: Problem
     problem_file_path: str
     goal_distances: Dict[State, int]
@@ -48,13 +48,15 @@ class Driver:
 
     def _generate_data(self) -> MutableSet[GlobalFaithfulAbstractState]:
         ### 1. Create state spaces to obtain the total number of states.
+        state_spaces_options = StateSpacesOptions()
+        state_spaces_options.state_space_options.use_unit_cost_one = True
+        state_spaces_options.state_space_options.remove_if_unsolvable = True
+        state_spaces_options.state_space_options.max_num_states = self._max_num_states
+        state_spaces_options.sort_ascending_by_num_states = True
         state_spaces = StateSpace.create(
             str(self._domain_file_path),
             [str(problem_file_path) for problem_file_path in self._problem_file_paths],
-            use_unit_cost_one=True,
-            remove_if_unsolvable=True,
-            max_num_states=self._max_num_states,
-            sort_ascending_by_num_states=True)
+            state_spaces_options)
         num_states = sum(state_space.get_num_states() for state_space in state_spaces)
         self._logger.info(f"[Generate data] Total number of states: {num_states}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
@@ -65,14 +67,16 @@ class Driver:
             memories.append((state_space.get_problem(), state_space.get_pddl_factories(), state_space.get_aag(), state_space.get_ssg()))
 
         ### 3. Perform pairwise isomorphism reduction across instances.
+        faithful_abstractions_options = FaithfulAbstractionsOptions()
+        faithful_abstractions_options.fa_options.mark_true_goal_literals = self._mark_true_goal_literals
+        faithful_abstractions_options.fa_options.use_unit_cost_one = True
+        faithful_abstractions_options.fa_options.remove_if_unsolvable = True
+        faithful_abstractions_options.fa_options.max_num_concrete_states = self._max_num_states
+        faithful_abstractions_options.fa_options.max_num_abstract_states = self._max_num_states
+        faithful_abstractions_options.sort_ascending_by_num_states = True
         gfas = GlobalFaithfulAbstraction.create(
             memories,
-            mark_true_goal_literals=self._mark_true_goal_literals,
-            use_unit_cost_one=True,
-            remove_if_unsolvable=True,
-            compute_complete_abstraction_mapping=False,
-            sort_ascending_by_num_states=True,
-            max_num_states=self._max_num_states)
+            faithful_abstractions_options)
 
         ### 4. Create combined data set where each state is non-isomorphic to all other states.
         gfa_states: MutableSet[GlobalFaithfulAbstractState] = set()
