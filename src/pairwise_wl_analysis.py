@@ -1,6 +1,7 @@
 from collections import defaultdict
 from pathlib import Path
-from pymimir import PDDLParser, IApplicableActionGenerator, StateRepository, Problem, State, StateSpacesOptions, StateSpace, FaithfulAbstractState, FaithfulAbstractionsOptions, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, Certificate, SparseNautyGraph, StaticVertexColoredDigraph, ProblemColorFunction, create_object_graph
+import re
+from pymimir import PDDLParser, IApplicableActionGenerator, StateRepository, Problem, State, StateSpacesOptions, StateSpace, FaithfulAbstractStateVertex, FaithfulAbstractionsOptions, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, NautyCertificate, NautySparseGraph, StaticVertexColoredDigraph, ProblemColorFunction, create_object_graph, compute_certificate_color_refinement, compute_certificate_2fwl, IsomorphismTypeFunction2FWL
 from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
@@ -8,7 +9,6 @@ import subprocess
 
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
-from .pykwl_utils import to_uvc_graph
 
 import pykwl as kwl
 
@@ -57,7 +57,7 @@ class Driver:
             str(self._domain_file_path),
             [str(problem_file_path) for problem_file_path in self._problem_file_paths],
             state_spaces_options)
-        num_states = sum(state_space.get_num_states() for state_space in state_spaces)
+        num_states = sum(state_space.get_num_vertices() for state_space in state_spaces)
         self._logger.info(f"[Generate data] Total number of states: {num_states}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
@@ -69,6 +69,7 @@ class Driver:
         ### 3. Perform pairwise isomorphism reduction across instances.
         faithful_abstractions_options = FaithfulAbstractionsOptions()
         faithful_abstractions_options.fa_options.mark_true_goal_literals = self._mark_true_goal_literals
+        faithful_abstractions_options.fa_options.compute_complete_abstraction_mapping = False
         faithful_abstractions_options.fa_options.use_unit_cost_one = True
         faithful_abstractions_options.fa_options.remove_if_unsolvable = True
         faithful_abstractions_options.fa_options.max_num_concrete_states = self._max_num_states
@@ -80,9 +81,13 @@ class Driver:
 
         ### 4. Create combined data set where each state is non-isomorphic to all other states.
         gfa_states: MutableSet[GlobalFaithfulAbstractState] = set()
+        num_non_isomorphic_states= 0
         for gfa in gfas:
-            gfa_states.update(set(gfa.get_states()))
+            gfa_states.update(set(gfa.get_vertices()))
+            num_non_isomorphic_states += gfa.get_num_non_isomorphic_states()
+
         num_gfa_states = len(gfa_states)
+        assert num_gfa_states == num_non_isomorphic_states
         self._logger.info(f"[Generate data] Total number of gfa states: {num_gfa_states}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
@@ -95,10 +100,10 @@ class Driver:
         for gfa_state in gfa_states:
             fa_index = gfa_state.get_faithful_abstraction_index()
             fa = fas[fa_index]
-            fa_state = fa.get_states()[gfa_state.get_faithful_abstract_state_index()]
-            v_star = int(fa.get_goal_distances()[fa_state.get_index()])
+            fa_state = fa.get_vertices()[gfa_state.get_faithful_abstract_state_index()]
+            v_star = float(fa.get_goal_distances()[fa_state.get_index()])
             isomorphism_certificate = fa_state.get_certificate()
-            grouped_gfa_states[tuple(isomorphism_certificate.get_canonical_initial_coloring())].append(StateInformation(gfa_state, v_star))
+            grouped_gfa_states[tuple(isomorphism_certificate.get_canonical_coloring())].append(StateInformation(gfa_state, v_star))
         self._logger.info(f"[Generate data] Total number of gfa groups: {len(grouped_gfa_states)}")
         self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
@@ -110,8 +115,6 @@ class Driver:
         value_conflicts = [0] * 2
         total_conflicts_same_instance = [0] * 2
         value_conflicts_same_instance = [0] * 2
-
-        wl = kwl.CanonicalColorRefinement(False)
 
         ### Fetch fas to access data underlying of gfa_states
         fas = gfas[0].get_abstractions()
@@ -136,27 +139,31 @@ class Driver:
                     fa = fas[fa_index]
                     problem = fa.get_problem()
                     factories = fa.get_pddl_factories()
-                    fa_state = fa.get_states()[fa_state_index]
+                    fa_state = fa.get_vertices()[fa_state_index]
                     representative_state = fa_state.get_representative_state()
                     color_function = color_functions[fa_index]
                     object_graph = create_object_graph(color_function, factories, problem, representative_state, self._mark_true_goal_literals)
 
                     ### How to print the representative concrete state
-                    # print(representative_state.to_string(problem, factories))
+                    # print(v_star, representative_state.to_string(problem, factories))
 
                     ### How to print object graph to dot
-                    # print(object_graph)
+                    #if (representative_state.get_index() in {87, 94}):  # (0,127) correct, (87,94) false
+                    #    print(object_graph.to_string(color_function))
 
                     ### Unfortunately, the WL code is not integrated into pymimir.
-                    # Hence, we have to translate the graph.
-                    # @Blai, interested in integrating coloring related code into pymimir?
-                    wl_graph = to_uvc_graph(object_graph)
 
-                    wl.calculate(wl_graph, True)
+                    certificate_color_refinement = compute_certificate_color_refinement(object_graph)
 
-                    quotient_matrix = wl.get_quotient_matrix_string()
+                    # if (representative_state.get_index() in {87, 94}):  # (0,127) correct, (87,94) false
+                    #     print(certificate_color_refinement)
 
-                    file.write(f"{quotient_matrix} {fa_index} {gfa_state.get_index()} {v_star}\n")
+                    # remove white spaces in certificate
+                    certificate = re.sub(r"\s+", "", str(certificate_color_refinement))
+
+                    # print(certificate)
+
+                    file.write(f"{certificate} {fa_index} {gfa_state.get_index()} {v_star}\n")
 
             ### Use sort command as follows to sort by first column
             # sort -k 1,1 data.txt
@@ -176,13 +183,15 @@ class Driver:
                 prev_state_id = None
                 prev_v_star = None
                 conflict_group = []
+
                 for line in file:
                     quotient_matrix_string, instance_id, state_id, v_star = line.split()
                     instance_id = int(instance_id)
                     state_id = int(state_id)
-                    v_star = int(v_star)
+                    v_star = float(v_star)
 
                     if prev_quotient_matrix_string is not None and prev_quotient_matrix_string == quotient_matrix_string:
+                        print("Conflict!")
                         ### Collect conflicts of a group
                         if not conflict_group:
                             conflict_group.append((prev_instance_id, prev_state_id, prev_v_star))
@@ -198,16 +207,16 @@ class Driver:
                     prev_state_id = state_id
                     prev_v_star = v_star
 
+            isomorphic_type_function = IsomorphismTypeFunction2FWL()
             for conflict_group in conflict_groups:
                 for (fa_index_1, fa_state_index_1, v_star_1), (fa_index_2, fa_state_index_2, v_star_2) in combinations(conflict_group, 2):
                     ### Use canonical color refinement as approximation and correct false positives
-                    wl1 = kwl.WeisfeilerLeman(1, self._ignore_counting)
 
                     fa_1: FaithfulAbstraction = fas[fa_index_1]
                     problem_1 = fa_1.get_problem()
                     factories_1 = fa_1.get_pddl_factories()
                     problem_filepath_1 = fa_1.get_problem().get_filepath()
-                    fa_state_1: FaithfulAbstractState = fa_1.get_states()[fa_state_index_1]
+                    fa_state_1: FaithfulAbstractStateVertex = fa_1.get_vertices()[fa_state_index_1]
                     representative_state_1 = fa_state_1.get_representative_state()
                     color_function_1 = color_functions[fa_index_1]
                     object_graph_1 = create_object_graph(color_function_1, factories_1, problem_1, representative_state_1, self._mark_true_goal_literals)
@@ -216,17 +225,13 @@ class Driver:
                     problem_2 = fa_2.get_problem()
                     factories_2 = fa_2.get_pddl_factories()
                     problem_filepath_2 = fa_1.get_problem().get_filepath()
-                    fa_state_2: FaithfulAbstractState = fa_2.get_states()[fa_state_index_2]
+                    fa_state_2: FaithfulAbstractStateVertex = fa_2.get_vertices()[fa_state_index_2]
                     representative_state_2 = fa_state_2.get_representative_state()
                     color_function_2 = color_functions[fa_index_2]
                     object_graph_2 = create_object_graph(color_function_2, factories_2, problem_2, representative_state_2, self._mark_true_goal_literals)
 
-
-                    wl_graph_1 = to_uvc_graph(object_graph_1)
-                    wl_graph_2 = to_uvc_graph(object_graph_2)
-
-                    coloring_1 = wl1.compute_coloring(wl_graph_1)
-                    coloring_2 = wl1.compute_coloring(wl_graph_2)
+                    coloring_1 = compute_certificate_color_refinement(object_graph_1)
+                    coloring_2 = compute_certificate_color_refinement(object_graph_2)
 
                     if coloring_1 != coloring_2:
                         continue
@@ -250,12 +255,13 @@ class Driver:
                     self._logger.info(f"Goal 1: fluent={[str(literal) for literal in problem_1.get_fluent_goal_condition()]}, derived={[str(literal) for literal in problem_1.get_derived_goal_condition()]}, static={[str(literal) for literal in problem_1.get_static_goal_condition()]}")
                     self._logger.info(f"Goal 2: fluent={[str(literal) for literal in problem_2.get_fluent_goal_condition()]}, derived={[str(literal) for literal in problem_2.get_derived_goal_condition()]}, static={[str(literal) for literal in problem_2.get_static_goal_condition()]}")
 
+                    # continue
+
                     # Check 2-FWL conflict
-                    fwl2 = kwl.WeisfeilerLeman(2, self._ignore_counting)
+                    fwl2_coloring_1 = compute_certificate_2fwl(object_graph_1, isomorphic_type_function)
+                    fwl2_coloring_2 = compute_certificate_2fwl(object_graph_2, isomorphic_type_function)
 
-                    fwl2_coloring_1 = fwl2.compute_coloring(wl_graph_1)
-                    fwl2_coloring_2 = fwl2.compute_coloring(wl_graph_2)
-
+                    total_conflicts[1] += 1
                     if fwl2_coloring_1 == fwl2_coloring_2:
                         if fa_index_1 == fa_index_2:
                             total_conflicts_same_instance[1] += 1
