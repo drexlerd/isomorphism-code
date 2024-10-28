@@ -1,4 +1,4 @@
-from collections import defaultdict, deque
+from collections import defaultdict
 from pathlib import Path
 import re
 from pymimir import (
@@ -7,10 +7,8 @@ from pymimir import (
     StateRepository,
     Problem,
     State,
-    StateSpaceOptions,
     StateSpacesOptions,
     StateSpace,
-    FaithfulAbstractionOptions,
     FaithfulAbstractStateVertex,
     FaithfulAbstractionsOptions,
     FaithfulAbstraction,
@@ -25,241 +23,284 @@ from pymimir import (
     compute_certificate_2fwl,
     IsomorphismTypeFunction2FWL
 )
-from typing import List, Tuple, Union, Deque, Dict
+from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
+import subprocess
 
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
 
+@dataclass
+class StateInformation:
+    gfa_state: GlobalFaithfulAbstractState
+    v_star: int
 
 class Driver:
-    def __init__(self, domain_file_path : Path, problem_file_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, ignore_counting: bool, mark_true_goal_atoms: bool):
-        self._domain_file_path = domain_file_path
-        self._problem_file_path = problem_file_path
+    def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, ignore_counting: bool, mark_true_goal_atoms: bool):
+        self._domain_file_path = (data_path / "domain.pddl").resolve()
+        self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
+        self._coloring_function = None
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
         self._enable_pruning = enable_pruning
         self._max_num_states = max_num_states
         self._ignore_counting = ignore_counting
-        self._mark_true_goal_atoms = mark_true_goal_atoms
+        self._mark_true_goal_literals = mark_true_goal_atoms
         add_console_handler(self._logger)
 
-    def _generate_data(self) -> Tuple[StateSpace, FaithfulAbstraction]:
-        state_space_options = StateSpaceOptions()
-        state_space_options.use_unit_cost_one = True
-        state_space_options.remove_if_unsolvable = True
-        state_space_options.max_num_states = self._max_num_states
-        state_space = StateSpace.create(
+
+    def _generate_data(self) -> MutableSet[GlobalFaithfulAbstractState]:
+        ### 1. Create state spaces to obtain the total number of states.
+        state_spaces_options = StateSpacesOptions()
+        state_spaces_options.state_space_options.use_unit_cost_one = True
+        state_spaces_options.state_space_options.remove_if_unsolvable = True
+        state_spaces_options.state_space_options.max_num_states = self._max_num_states
+        state_spaces_options.sort_ascending_by_num_states = True
+        state_spaces = StateSpace.create(
             str(self._domain_file_path),
-            str(self._problem_file_path),
-            state_space_options)
+            [str(problem_file_path) for problem_file_path in self._problem_file_paths],
+            state_spaces_options)
+        num_states = sum(state_space.get_num_vertices() for state_space in state_spaces)
+        self._logger.info(f"[Generate data] Total number of states: {num_states}")
+        self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
-        if state_space is None:
-            print("State space is none")
-            return None
+        ### 2. Fetch memory from state spaces to create gfas using the same factories, aag, and ssg.
+        memories = []
+        for state_space in state_spaces:
+            memories.append((state_space.get_problem(), state_space.get_pddl_factories(), state_space.get_aag(), state_space.get_ssg()))
 
-        faithful_abstraction_options = FaithfulAbstractionOptions()
-        faithful_abstraction_options.mark_true_goal_literals = self._mark_true_goal_atoms
-        faithful_abstraction_options.use_unit_cost_one = True
-        faithful_abstraction_options.remove_if_unsolvable = True
-        faithful_abstraction_options.compute_complete_abstraction_mapping = False
-        faithful_abstraction = FaithfulAbstraction.create(
-            state_space.get_problem(),
-            state_space.get_pddl_factories(),
-            state_space.get_aag(),
-            state_space.get_ssg(),
-            faithful_abstraction_options)
+        ### 3. Perform pairwise isomorphism reduction across instances.
+        faithful_abstractions_options = FaithfulAbstractionsOptions()
+        faithful_abstractions_options.fa_options.mark_true_goal_literals = self._mark_true_goal_literals
+        faithful_abstractions_options.fa_options.compute_complete_abstraction_mapping = False
+        faithful_abstractions_options.fa_options.use_unit_cost_one = True
+        faithful_abstractions_options.fa_options.remove_if_unsolvable = True
+        faithful_abstractions_options.fa_options.max_num_concrete_states = self._max_num_states
+        faithful_abstractions_options.fa_options.max_num_abstract_states = self._max_num_states
+        faithful_abstractions_options.sort_ascending_by_num_states = True
+        gfas = GlobalFaithfulAbstraction.create(
+            memories,
+            faithful_abstractions_options)
 
-        if faithful_abstraction is None:
-            return None
+        ### 4. Create combined data set where each state is non-isomorphic to all other states.
+        gfa_states: MutableSet[GlobalFaithfulAbstractState] = set()
+        num_non_isomorphic_states= 0
+        for gfa in gfas:
+            gfa_states.update(set(gfa.get_vertices()))
+            num_non_isomorphic_states += gfa.get_num_non_isomorphic_states()
 
-        return (state_space, faithful_abstraction)
+        num_gfa_states = len(gfa_states)
+        assert num_gfa_states == num_non_isomorphic_states
+        self._logger.info(f"[Generate data] Total number of gfa states: {num_gfa_states}")
+        self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
-    def _validate_wl_correctness_iteratively(self, k: int, state_space: StateSpace, fa: FaithfulAbstraction, partition: List[Tuple[State, int, kwl.EdgeColoredGraph]]):
-        """ The idea of the iterative solution is to run a standard DFS.
-            Each node gets it own instantiation of WL because the colors in such a partition are identical.
-        """
+        ### 5. Group gfa states by canonical initial coloring.
+        # Assumption: if two object graphs have same canonical initial coloring
+        # then they also have same number of vertices and edges.
+        grouped_gfa_states: Dict[Tuple[int], StateInformation] = defaultdict(list)
+        ### Fetch underlying fas to access the representative abstract state.
+        fas = gfas[0].get_abstractions()
+        for gfa_state in gfa_states:
+            fa_index = gfa_state.get_faithful_abstraction_index()
+            fa = fas[fa_index]
+            fa_state = fa.get_vertices()[gfa_state.get_faithful_abstract_state_index()]
+            v_star = float(fa.get_goal_distances()[fa_state.get_index()])
+            isomorphism_certificate = fa_state.get_certificate()
+            grouped_gfa_states[tuple(isomorphism_certificate.get_canonical_coloring())].append(StateInformation(gfa_state, v_star))
+        self._logger.info(f"[Generate data] Total number of gfa groups: {len(grouped_gfa_states)}")
+        self._logger.info(f"[Generate data] Peak memory usage: {int(memory_usage())} MiB.")
 
-        total_conflicts = 0
-        value_conflicts = 0
-        max_num_iterations = 0
+        ### Important: return gfas since they own the memory to all data.
+        return gfas, grouped_gfa_states, num_states, num_gfa_states
 
-        @dataclass
-        class SearchNode:
-            wl : kwl.WeisfeilerLeman
-            partition: List[Tuple[int, State, int, kwl.EdgeColoredGraph, kwl.GraphColoring, kwl.GraphColoring]]
-            num_previous_iterations: int
+    def _validate_wl_correctness(self, gfas: List[GlobalFaithfulAbstraction], grouped_gfa_states: Dict[Tuple[int], StateInformation]):
+        total_conflicts = [0] * 2
+        value_conflicts = [0] * 2
+        total_conflicts_same_instance = [0] * 2
+        value_conflicts_same_instance = [0] * 2
 
-        partition_ext = []
-        wl = kwl.WeisfeilerLeman(k, self._ignore_counting)
-        for state, v_star, kwl_graph in partition:
-            current_coloring = wl.compute_initial_coloring(kwl_graph)
-            # We only care data compatibility between current and next coloring, so we can call compute_initial_coloring again.
-            next_coloring = wl.compute_initial_coloring(kwl_graph)
-            partition_ext.append((state, v_star, kwl_graph, current_coloring, next_coloring))
+        ### Fetch fas to access data underlying of gfa_states
+        fas = gfas[0].get_abstractions()
 
-        queue : Deque[SearchNode] = deque()
-        queue.append(SearchNode(wl, partition_ext, 0))
+        color_functions: List[ProblemColorFunction] = []
+        for fa in fas:
+            color_functions.append(ProblemColorFunction(fa.get_problem()))
 
-        while queue:
-            cur_node = queue.pop()
-            cur_wl = cur_node.wl
-            cur_partition = cur_node.partition
-            cur_num_prev_iterations = cur_node.num_previous_iterations
+        for partition_id, gfa_states_group in enumerate(grouped_gfa_states.values()):
 
-            # 1.1 Run 1-WL until colors start divering
-            is_stable_state = dict()
-            for state, v_star, kwl_graph, current_coloring, next_coloring in cur_partition:
-                is_stable_state[state] = False
+            partition_filename = f"partition_{partition_id}.1qm"
 
-            num_iterations = cur_num_prev_iterations
+            ### Dump quotient matrices to a file with format:
+            # repr(quotient_matrix) instance_id state_id
+            with open(partition_filename, "w") as file:
+                for state_information in gfa_states_group:
+                    gfa_state: GlobalFaithfulAbstractState = state_information.gfa_state
+                    v_star: int = state_information.v_star
+                    # fa_index can also be seen as gfa_index
+                    fa_index = gfa_state.get_faithful_abstraction_index()
+                    fa_state_index = gfa_state.get_faithful_abstract_state_index()
+                    fa = fas[fa_index]
+                    problem = fa.get_problem()
+                    factories = fa.get_pddl_factories()
+                    fa_state = fa.get_vertices()[fa_state_index]
+                    representative_state = fa_state.get_representative_state()
+                    color_function = color_functions[fa_index]
+                    object_graph = create_object_graph(color_function, factories, problem, representative_state, self._mark_true_goal_literals)
 
-            colorings = set()
+                    ### How to print the representative concrete state
+                    # print(v_star, representative_state.to_string(problem, factories))
 
-            colorings_by_state = dict()
+                    ### How to print object graph to dot
+                    # print(object_graph.to_string(color_function))
 
-            while True:
-                all_stable = True
+                    certificate_color_refinement = compute_certificate_color_refinement(object_graph)
 
-                num_iterations += 1
-                max_num_iterations = max(max_num_iterations, num_iterations)
+                    # remove white spaces in certificate
+                    certificate = re.sub(r"\s+", "", str(certificate_color_refinement))
 
-                next_partition = []
-                for element in cur_partition:
-                    state, v_star, kwl_graph, current_coloring, next_coloring = element
+                    file.write(f"{certificate} {fa_index} {gfa_state.get_index()} {v_star}\n")
 
-                    if is_stable_state[state]:
-                        next_partition.append(element)
+            ### Use sort command as follows to sort by first column
+            # sort -k 1,1 data.txt
+
+            ### Call the sort command using subprocess
+            sorted_partition_filename = f"partition_{partition_id}.1qm"
+            try:
+                subprocess.run(['sort', '-k1,1', '-o', sorted_partition_filename, partition_filename], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Error during sorting: {e}")
+
+            ### Open the file for reading
+            conflict_groups = []
+            with open(sorted_partition_filename, "r") as file:
+                prev_quotient_matrix_string = None
+                prev_instance_id = None
+                prev_state_id = None
+                prev_v_star = None
+                conflict_group = []
+
+                for line in file:
+                    quotient_matrix_string, instance_id, state_id, v_star = line.split()
+                    instance_id = int(instance_id)
+                    state_id = int(state_id)
+                    v_star = float(v_star)
+
+                    if prev_quotient_matrix_string is not None and prev_quotient_matrix_string == quotient_matrix_string:
+                        print("Conflict!")
+                        ### Collect conflicts of a group
+                        if not conflict_group:
+                            conflict_group.append((prev_instance_id, prev_state_id, prev_v_star))
+                        conflict_group.append((instance_id, state_id, v_star))
+                    else:
+                        if conflict_group:
+                            ### No more conflicts for the same group
+                            conflict_groups.append(conflict_group)
+                            conflict_group = []
+
+                    prev_quotient_matrix_string = quotient_matrix_string
+                    prev_instance_id = instance_id
+                    prev_state_id = state_id
+                    prev_v_star = v_star
+
+            isomorphic_type_function = IsomorphismTypeFunction2FWL()
+            for conflict_group in conflict_groups:
+                for (fa_index_1, fa_state_index_1, v_star_1), (fa_index_2, fa_state_index_2, v_star_2) in combinations(conflict_group, 2):
+
+                    fa_1: FaithfulAbstraction = fas[fa_index_1]
+                    problem_1 = fa_1.get_problem()
+                    factories_1 = fa_1.get_pddl_factories()
+                    problem_filepath_1 = fa_1.get_problem().get_filepath()
+                    fa_state_1: FaithfulAbstractStateVertex = fa_1.get_vertices()[fa_state_index_1]
+                    representative_state_1 = fa_state_1.get_representative_state()
+                    color_function_1 = color_functions[fa_index_1]
+                    object_graph_1 = create_object_graph(color_function_1, factories_1, problem_1, representative_state_1, self._mark_true_goal_literals)
+
+                    fa_2: FaithfulAbstraction = fas[fa_index_2]
+                    problem_2 = fa_2.get_problem()
+                    factories_2 = fa_2.get_pddl_factories()
+                    problem_filepath_2 = fa_1.get_problem().get_filepath()
+                    fa_state_2: FaithfulAbstractStateVertex = fa_2.get_vertices()[fa_state_index_2]
+                    representative_state_2 = fa_state_2.get_representative_state()
+                    color_function_2 = color_functions[fa_index_2]
+                    object_graph_2 = create_object_graph(color_function_2, factories_2, problem_2, representative_state_2, self._mark_true_goal_literals)
+
+                    coloring_1 = compute_certificate_color_refinement(object_graph_1)
+                    coloring_2 = compute_certificate_color_refinement(object_graph_2)
+
+                    if coloring_1 != coloring_2:
                         continue
 
-                    is_stable = cur_wl.compute_next_coloring(kwl_graph, current_coloring, next_coloring)
-
-                    if is_stable:
-                        is_stable_state[state] = True
+                    # Report 1-WL conflict
+                    total_conflicts[0] += 1
+                    if fa_index_1 == fa_index_2:
+                        total_conflicts_same_instance[0] += 1
+                    if v_star_1 != v_star_2:
+                        value_conflicts[0] += 1
+                        if fa_index_1 == fa_index_2:
+                            value_conflicts_same_instance[0] += 1
+                        self._logger.info(f"[1-WL] Value conflict!")
                     else:
-                        all_stable = False
+                        self._logger.info(f"[1-WL] Conflict!")
 
-                    colors, counts = next_coloring.get_frequencies()
-                    coloring = (num_iterations, tuple(colors), tuple(counts))
-                    colorings.add(coloring)
-                    colorings_by_state[state] = coloring
+                    self._logger.info(f" > Instance 1: {problem_filepath_1}")
+                    self._logger.info(f" > Instance 2: {problem_filepath_2}")
+                    self._logger.info(f" > Cost: {v_star_1}; State 1: {representative_state_1.to_string(problem_1, factories_1)}")
+                    self._logger.info(f" > Cost: {v_star_2}; State 2: {representative_state_2.to_string(problem_2, factories_2)}")
+                    self._logger.info(f"Goal 1: fluent={[str(literal) for literal in problem_1.get_fluent_goal_condition()]}, derived={[str(literal) for literal in problem_1.get_derived_goal_condition()]}, static={[str(literal) for literal in problem_1.get_static_goal_condition()]}")
+                    self._logger.info(f"Goal 2: fluent={[str(literal) for literal in problem_2.get_fluent_goal_condition()]}, derived={[str(literal) for literal in problem_2.get_derived_goal_condition()]}, static={[str(literal) for literal in problem_2.get_static_goal_condition()]}")
 
-                    # swap current and next coloring
-                    next_partition.append((state, v_star, kwl_graph, next_coloring, current_coloring))
+                    # continue
 
-                cur_partition = next_partition
+                    # Check 2-FWL conflict
+                    fwl2_coloring_1 = compute_certificate_2fwl(object_graph_1, isomorphic_type_function)
+                    fwl2_coloring_2 = compute_certificate_2fwl(object_graph_2, isomorphic_type_function)
 
-                if len(colorings) > 1:
-                    # Detected diverging state colorings
-                    break
+                    total_conflicts[1] += 1
+                    if fwl2_coloring_1 == fwl2_coloring_2:
+                        if fa_index_1 == fa_index_2:
+                            total_conflicts_same_instance[1] += 1
+                        if v_star_1 != v_star_2:
+                            value_conflicts[1] += 1
+                            if fa_index_1 == fa_index_2:
+                                value_conflicts_same_instance[1] += 1
+                            self._logger.info(f"[2-FWL] Value conflict!")
+                        else:
+                            self._logger.info(f"[2-FWL] Conflict!")
 
-                if all_stable:
-                    # All are stable
-                    break
-
-            # 1.2 Compute the new partitioning
-            partitioning = defaultdict(list)
-            for (state, v_star, wl_graph, current_coloring, next_coloring) in cur_partition:
-                coloring = colorings_by_state[state]
-
-                partitioning[coloring].append((state, v_star, wl_graph, current_coloring, next_coloring))
-
-            # 2. Recursively refine new partitioning
-            for coloring, sub_partition in partitioning.items():
-                if len(sub_partition) == 1:
-                    # Base case 1: partition is singleton set. There cannot be any conflicts.
-                    pass
-                elif all(is_stable_state[state] for state, _, _, _, _ in sub_partition):
-                    # Base case 2: all colors in the partition are stable
-
-                    if len(sub_partition) > 1:
-
-                        for (state_1, v_star_1, _, _, _), (state_2, v_star_2, _, _, _) in combinations(sub_partition, 2):
-
-                            if v_star_1 != v_star_2:
-                                value_conflicts += 1
-                                self._logger.info(f"[{k}-FWL] Value conflict!")
-                            else:
-                                self._logger.info(f"[{k}-FWL] Conflict!")
-                            total_conflicts += 1
+                        self._logger.info(f" > Instance 1: {problem_filepath_1}")
+                        self._logger.info(f" > Instance 2: {problem_filepath_2}")
+                        self._logger.info(f" > Cost: {v_star_1}; State 1: {representative_state_1.to_string(problem_1, factories_1)}")
+                        self._logger.info(f" > Cost: {v_star_2}; State 2: {representative_state_2.to_string(problem_2, factories_2)}")
+                        self._logger.info(f"Goal 1: fluent={[str(literal) for literal in problem_1.get_fluent_goal_condition()]}, derived={[str(literal) for literal in problem_1.get_derived_goal_condition()]}, static={[str(literal) for literal in problem_1.get_static_goal_condition()]}")
+                        self._logger.info(f"Goal 2: fluent={[str(literal) for literal in problem_2.get_fluent_goal_condition()]}, derived={[str(literal) for literal in problem_2.get_derived_goal_condition()]}, static={[str(literal) for literal in problem_2.get_static_goal_condition()]}")
 
 
-                            self._logger.info(f" > Cost: {v_star_1}; State 1: {state_1.to_string(fa.get_problem(), fa.get_pddl_factories())}")
-                            self._logger.info(f" > Cost: {v_star_2}; State 2: {state_2.to_string(fa.get_problem(), fa.get_pddl_factories())}")
-                            self._logger.info(f"Goal 1: fluent={[str(literal) for literal in fa.get_problem().get_fluent_goal_condition()]}, derived={[str(literal) for literal in fa.get_problem().get_derived_goal_condition()]}, static={[str(literal) for literal in fa.get_problem().get_static_goal_condition()]}")
-                            self._logger.info(f"Goal 2: fluent={[str(literal) for literal in fa.get_problem().get_fluent_goal_condition()]}, derived={[str(literal) for literal in fa.get_problem().get_derived_goal_condition()]}, static={[str(literal) for literal in fa.get_problem().get_static_goal_condition()]}")
-
-
-                else:
-                    # Inductive case:
-
-                    queue.append(SearchNode(kwl.WeisfeilerLeman(k, self._ignore_counting), sub_partition, num_iterations))
-
-            # self._logger.info(f"Finished partition with color function size {wl.get_coloring_function_size()}")
-
-        return total_conflicts, value_conflicts, max_num_iterations
-
-
-    def _validate_wl_correctness(self, k: int, state_space: StateSpace, faithful_abstraction: FaithfulAbstraction) -> Tuple[int, int, int]:
-        # Test representatives from each partition to see if two are mapped to the same class.
-
-        total_conflicts = 0
-        value_conflicts = 0
-        max_num_iterations = 0
-
-        initial_partitionings: Dict[Tuple[int], List[Tuple[int, State, kwl.EdgeColoredGraph]]] = defaultdict(list)
-        color_function = ProblemColorFunction(state_space.get_problem())
-        goal_distances = faithful_abstraction.get_goal_distances()
-        for abstract_state in faithful_abstraction.get_states():
-            certificate = abstract_state.get_certificate()
-            v_star = goal_distances[abstract_state.get_index()]
-            state = abstract_state.get_representative_state()
-            object_graph = create_object_graph(color_function, state_space.get_pddl_factories(), state_space.get_problem(), state, self._mark_true_goal_atoms)
-            kwl_graph = to_uvc_graph(object_graph)
-
-            initial_partitionings[tuple(certificate.get_canonical_initial_coloring())].append((state, v_star, kwl_graph))
-
-        for canonical_initial_coloring, initial_partition in initial_partitionings.items():
-
-            self._logger.info(f"Processing partitioning with canonical initial coloring {canonical_initial_coloring}")
-
-            total_conflicts_i, value_conflicts_i, max_num_iterations_i = self._validate_wl_correctness_iteratively(k, state_space, faithful_abstraction, initial_partition)
-            total_conflicts += total_conflicts_i
-            value_conflicts += value_conflicts_i
-            max_num_iterations = max(max_num_iterations, max_num_iterations_i)
-
-        return total_conflicts, value_conflicts, max_num_iterations
+        return total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance
 
 
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
-        """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
-        """
-        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_atoms}]")
-        self._logger.info(f"[Configuration] Domain file: {self._domain_file_path}")
-        self._logger.info(f"[Configuration] Problem file: {self._problem_file_path}")
+        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
+        self._logger.info("[Configuration] Domain file: {self._domain_file_path}")
+        for i, problem_file_path in enumerate(self._problem_file_paths):
+            self._logger.info(f"[Configuration] Problem {i} file: {problem_file_path}")
 
         self._logger.info("[Pymimir] Generating pairwise non isomorphic states.")
-        data = self._generate_data()
+        gfas, grouped_gfa_states, num_states, num_gfa_states = self._generate_data()
         self._logger.info(f"[Pymimir] Peak memory usage: {int(memory_usage())} MiB.")
-        if data is None:
+        if not gfas:
             self._logger.info(f"[Pymimir] Got empty set of gfas. Aborting.")
             return
 
-        state_space, faithful_abstraction = data
-
-        total_conflicts = [0, 0]
-        value_conflicts = [0, 0]
-        max_num_iterations = [0, 0]
-        self._logger.info("[1-WL] Run validation...")
-        total_conflicts[0], value_conflicts[0], max_num_iterations[0] = self._validate_wl_correctness(1, state_space, faithful_abstraction)
-        if total_conflicts[0] > 0:
-            self._logger.info("[2-FWL] Run validation...")
-            total_conflicts[1], value_conflicts[1], max_num_iterations[1] = self._validate_wl_correctness(2, state_space, faithful_abstraction)
+        # Dominik (13-07-2024): Commented out the code to see memory consumption of just the data generation
+        self._logger.info("[WL] Run validation...")
+        total_conflicts, value_conflicts, total_conflicts_same_instance, value_conflicts_same_instance = self._validate_wl_correctness(gfas, grouped_gfa_states)
 
         self._logger.info("[Results] Ran to completion.")
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
-        self._logger.info(f"[Results] Table row: [#P = {faithful_abstraction.get_num_states()}, #S = {state_space.get_num_states()}, #I = {max_num_iterations}, #C = {total_conflicts}, #V = {value_conflicts}]")
+        self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, ignore_counting = {self._ignore_counting}, mark_true_goal_atoms = {self._mark_true_goal_literals}]")
+        self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #P = {num_gfa_states}, #S = {num_states}, #C = {total_conflicts}, #V = {value_conflicts}, #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
+        self._logger.info(f"[Results] Peak memory usage: {int(memory_usage())} MiB.")

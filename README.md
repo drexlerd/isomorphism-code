@@ -23,14 +23,5 @@ python3 main.py
 The following call will test for pairwise conflicts between states in Gripper instances
 
 ```console
-./main.py pairwise-wl --data-path data/gripper
-```
-
-
-## 2. Pairwise conflicts on single instance
-
-The following call will test for pairwise conflicts between states in Gripper instances
-
-```console
-./main.py wl --domain_file_path data/gripper/domain.pddl --problem_file_path data/gripper/p-1-0.pddl
+./main.py wl --data-path data/gripper
 ```

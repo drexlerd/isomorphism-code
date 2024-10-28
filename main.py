@@ -32,24 +32,14 @@ if __name__ == "__main__":
     # Root parser: type
     subparsers = parser.add_subparsers(dest="type", required=True, help="Abstraction type command help.")
 
-    # Sub parser 1: wl
+    # Sub parser 1: pairwise-wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
-    add_pddl_options(wl_parser)
+    wl_parser.add_argument("--data-path", required=True, help="The path to the domain file.")
     add_verbosity_option(wl_parser)
     add_max_num_states_options(wl_parser)
     add_enable_pruning_options(wl_parser)
     wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
     wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
-    wl_parser.add_argument("--terminate-early", action="store_true", help="If specified, terminate if colors distinguish partitions.")
-
-    # Sub parser 2: pairwise-wl
-    pairwise_wl_parser = subparsers.add_parser("pairwise-wl", help="k-WL abstraction generator.")
-    pairwise_wl_parser.add_argument("--data-path", required=True, help="The path to the domain file.")
-    add_verbosity_option(pairwise_wl_parser)
-    add_max_num_states_options(pairwise_wl_parser)
-    add_enable_pruning_options(pairwise_wl_parser)
-    pairwise_wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
-    pairwise_wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
 
     # Sub parser 3: gnn
     gnn_parser = subparsers.add_parser("gnn", help="GNN trainer.")
@@ -59,18 +49,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Run the abstraction generator
+    driver = None
     if args.type == "wl":
         from src.wl_analysis import Driver
-        driver = Driver(
-            Path(args.domain_file_path).absolute(),
-            Path(args.problem_file_path).absolute(),
-            args.verbosity,
-            args.enable_pruning,
-            args.max_num_states,
-            args.ignore_counting,
-            args.mark_true_goal_atoms)
-    elif args.type == "pairwise-wl":
-        from src.pairwise_wl_analysis import Driver
         driver = Driver(
             Path(args.data_path).absolute(),
             args.verbosity,
