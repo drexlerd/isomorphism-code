@@ -1,7 +1,28 @@
 from collections import defaultdict
 from pathlib import Path
 import re
-from pymimir import PDDLParser, IApplicableActionGenerator, StateRepository, Problem, State, StateSpacesOptions, StateSpace, FaithfulAbstractStateVertex, FaithfulAbstractionsOptions, FaithfulAbstraction, GlobalFaithfulAbstractState, GlobalFaithfulAbstraction, NautyCertificate, NautySparseGraph, StaticVertexColoredDigraph, ProblemColorFunction, create_object_graph, compute_certificate_color_refinement, compute_certificate_2fwl, IsomorphismTypeFunction2FWL
+from pymimir import (
+    PDDLParser,
+    IApplicableActionGenerator,
+    StateRepository,
+    Problem,
+    State,
+    StateSpacesOptions,
+    StateSpace,
+    FaithfulAbstractStateVertex,
+    FaithfulAbstractionsOptions,
+    FaithfulAbstraction,
+    GlobalFaithfulAbstractState,
+    GlobalFaithfulAbstraction,
+    NautyCertificate,
+    NautySparseGraph,
+    StaticVertexColoredDigraph,
+    ProblemColorFunction,
+    create_object_graph,
+    compute_certificate_color_refinement,
+    compute_certificate_2fwl,
+    IsomorphismTypeFunction2FWL
+)
 from typing import List, Tuple, Dict, Any, MutableSet
 from itertools import combinations
 from dataclasses import dataclass
@@ -9,8 +30,6 @@ import subprocess
 
 from .performance import memory_usage
 from .logger import initialize_logger, add_console_handler
-
-import pykwl as kwl
 
 
 @dataclass
@@ -148,20 +167,12 @@ class Driver:
                     # print(v_star, representative_state.to_string(problem, factories))
 
                     ### How to print object graph to dot
-                    #if (representative_state.get_index() in {87, 94}):  # (0,127) correct, (87,94) false
-                    #    print(object_graph.to_string(color_function))
-
-                    ### Unfortunately, the WL code is not integrated into pymimir.
+                    # print(object_graph.to_string(color_function))
 
                     certificate_color_refinement = compute_certificate_color_refinement(object_graph)
 
-                    # if (representative_state.get_index() in {87, 94}):  # (0,127) correct, (87,94) false
-                    #     print(certificate_color_refinement)
-
                     # remove white spaces in certificate
                     certificate = re.sub(r"\s+", "", str(certificate_color_refinement))
-
-                    # print(certificate)
 
                     file.write(f"{certificate} {fa_index} {gfa_state.get_index()} {v_star}\n")
 
@@ -210,7 +221,6 @@ class Driver:
             isomorphic_type_function = IsomorphismTypeFunction2FWL()
             for conflict_group in conflict_groups:
                 for (fa_index_1, fa_state_index_1, v_star_1), (fa_index_2, fa_state_index_2, v_star_2) in combinations(conflict_group, 2):
-                    ### Use canonical color refinement as approximation and correct false positives
 
                     fa_1: FaithfulAbstraction = fas[fa_index_1]
                     problem_1 = fa_1.get_problem()
