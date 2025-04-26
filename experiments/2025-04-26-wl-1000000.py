@@ -36,7 +36,7 @@ if REMOTE:
         memory_per_cpu="2900M",  # 2900M * 32 = 92.8G
         cpus_per_task=32,
         setup=TetralithEnvironment.DEFAULT_SETUP,
-        extra_options="#SBATCH --account=naiss2023-5-314")
+        extra_options="#SBATCH --account=naiss2024-5-421")
     SUITE = [
         "barman",
         "blocks_3",
@@ -57,7 +57,7 @@ if REMOTE:
         "spanner",
         "visitall",
     ]
-    TIME_LIMIT = 60 * 60 * 24 * 1  # 2 days
+    TIME_LIMIT = 60 * 60 * 3  # 3 hours
 else:
     ENV = LocalEnvironment(processes=12)
     SUITE = [
