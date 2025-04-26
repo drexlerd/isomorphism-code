@@ -125,7 +125,7 @@ for domain_name in SUITE:
     # 'domain', 'problem', 'algorithm', 'coverage'.
     run.set_property("domain", domain_name)
     run.set_property("problem", domain_name)
-    run.set_property("algorithm", "wl")
+    run.set_property("algorithm", "wl-no-decoding-table")
     # BaseReport needs the following properties:
     # 'time_limit', 'memory_limit'.
     run.set_property("time_limit", TIME_LIMIT)
