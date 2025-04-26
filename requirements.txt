@@ -1,8 +1,6 @@
-pymimir==0.9.67
+pymimir==0.12.19
 graphviz==0.20.1
 lab==8.0
-pykwl==0.0.19
-pynauty==2.8.6
 termcolor==2.4.0
 tqdm==4.66.2
 psutil==5.9.8

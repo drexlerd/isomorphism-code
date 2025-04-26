@@ -35,16 +35,10 @@ if __name__ == "__main__":
     # Sub parser 1: pairwise-wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
     wl_parser.add_argument("--data-path", required=True, help="The path to the domain file.")
+    wl_parser.add_argument("--weak", action="store_true", help="Weak comparison check (without decoding table)")
     add_verbosity_option(wl_parser)
     add_max_num_states_options(wl_parser)
     add_enable_pruning_options(wl_parser)
-    wl_parser.add_argument("--ignore-counting", action="store_true", help="Disallow counting quantifiers.")
-    wl_parser.add_argument("--mark-true-goal-atoms", action="store_true", help="If specified, mark true and false goal atoms.")
-
-    # Sub parser 3: gnn
-    gnn_parser = subparsers.add_parser("gnn", help="GNN trainer.")
-    add_pddl_options(gnn_parser)
-    add_verbosity_option(gnn_parser)
 
     args = parser.parse_args()
 
@@ -57,14 +51,7 @@ if __name__ == "__main__":
             args.verbosity,
             args.enable_pruning,
             args.max_num_states,
-            args.ignore_counting,
-            args.mark_true_goal_atoms)
-    elif args.type == "gnn":
-        from src.gnn import Driver
-        driver = Driver(
-            Path(args.domain_file_path).absolute(),
-            Path(args.problem_file_path).absolute(),
-            args.verbosity)
+            args.weak)
 
     # Run the configuration
     driver.run()
