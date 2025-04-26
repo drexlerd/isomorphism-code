@@ -117,7 +117,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_wl",
-        [sys.executable, "-u", "{main_script}", "wl", "--data-path", f"{domain_name}", "--weak", "--max-num-states", "10000"],
+        [sys.executable, "-u", "{main_script}", "wl-no-decoding-table", "--data-path", f"{domain_name}", "--no-decoding-table", "--max-num-states", "10000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )
@@ -133,7 +133,7 @@ for domain_name in SUITE:
     # Every run has to have a unique id in the form of a list.
     # The algorithm name is only really needed when there are
     # multiple algorithms.
-    run.set_property("id", ["wl", domain_name])
+    run.set_property("id", ["wl-no-decoding-table", domain_name])
 
 
 # Add step that writes experiment files to disk.

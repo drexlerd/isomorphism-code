@@ -35,7 +35,7 @@ if __name__ == "__main__":
     # Sub parser 1: pairwise-wl
     wl_parser = subparsers.add_parser("wl", help="k-WL abstraction generator.")
     wl_parser.add_argument("--data-path", required=True, help="The path to the domain file.")
-    wl_parser.add_argument("--weak", action="store_true", help="Weak comparison check (without decoding table)")
+    wl_parser.add_argument("--no-decoding-table", action="store_true", help="Certificate comparison without decoding table")
     add_verbosity_option(wl_parser)
     add_max_num_states_options(wl_parser)
     add_enable_pruning_options(wl_parser)
@@ -51,7 +51,7 @@ if __name__ == "__main__":
             args.verbosity,
             args.enable_pruning,
             args.max_num_states,
-            args.weak)
+            args.no_decoding_table)
 
     # Run the configuration
     driver.run()

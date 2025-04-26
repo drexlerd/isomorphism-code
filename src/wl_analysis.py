@@ -24,7 +24,7 @@ class StateInformation:
 
 
 class Driver:
-    def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, weak: bool):
+    def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, no_decoding_table: bool):
         self._domain_file_path = (data_path / "domain.pddl").resolve()
         self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
         self._coloring_function = None
@@ -33,7 +33,7 @@ class Driver:
         self._verbosity = verbosity.upper()
         self._enable_pruning = enable_pruning
         self._max_num_states = max_num_states
-        self._weak = weak
+        self._no_decoding_table = no_decoding_table
         add_console_handler(self._logger)
 
 
@@ -87,7 +87,7 @@ class Driver:
                     v_star = state_information.v_star
                     object_graph = datasets.create_object_graph(state, problem)
                     certificate = graphs.compute_color_refinement_certificate(object_graph)
-                    if self._weak:
+                    if self._no_decoding_table:
                         certificate = certificate.get_hash_to_color()
 
                     certificate = re.sub(r"\s+", "", str(certificate)) # remove white spaces in certificate
@@ -142,7 +142,7 @@ class Driver:
 
                     certificate_1 = graphs.compute_color_refinement_certificate(object_graph_1)
                     certificate_2 = graphs.compute_color_refinement_certificate(object_graph_2) 
-                    if self._weak:
+                    if self._no_decoding_table:
                         certificate_1 = certificate_1.get_hash_to_color()
                         certificate_2 = certificate_2.get_hash_to_color()
                     
@@ -168,7 +168,7 @@ class Driver:
                     # Check and report 2-FWL conflict
                     certificate_1 = graphs.compute_2fwl_certificate(object_graph_1, isomorphic_type_function)
                     certificate_2 = graphs.compute_2fwl_certificate(object_graph_2, isomorphic_type_function)
-                    if self._weak:
+                    if self._no_decoding_table:
                         certificate_1 = certificate_1.get_hash_to_color()
                         certificate_2 = certificate_2.get_hash_to_color()
 
@@ -196,7 +196,7 @@ class Driver:
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
-        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, weak = {self._weak}]")
+        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, no_decoding_table = {self._no_decoding_table}]")
         self._logger.debug("[Configuration] Domain file: {self._domain_file_path}")
         for i, problem_file_path in enumerate(self._problem_file_paths):
             self._logger.debug(f"[Configuration] Problem {i} file: {problem_file_path}")
@@ -210,7 +210,7 @@ class Driver:
 
         self._logger.info("[Results] Ran to completion.")
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
-        self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, weak = {self._weak}]")
+        self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, no_decoding_table = {self._no_decoding_table}]")
         total_conflicts_score = [num_conflict / (num_states * num_states) for num_conflict in total_conflicts]
         value_conflicts_score = [num_conflict / (num_states * num_states) for num_conflict in value_conflicts]
         self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #S = {num_states}, #S^2 = {num_states * num_states}, #C = {total_conflicts}, #C/#S^2 = [{', '.join(f'{value:.5f}' for value in total_conflicts_score)}], #V = {value_conflicts}, #V/#S^2 = [{', '.join(f'{value:.5f}' for value in value_conflicts_score)}], #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
