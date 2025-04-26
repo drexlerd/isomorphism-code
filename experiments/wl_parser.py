@@ -25,8 +25,8 @@ class WLParser(Parser):
         self.add_pattern("ratio_total_conflicts_2_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, (.+?)\], .*", type=float)
         self.add_pattern("total_value_conflicts_1_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, .+?\], #V = \[(\d+), \d+\], .*", type=int)
         self.add_pattern("total_value_conflicts_2_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, .+?\], #V = \[\d+, (\d+)\], .*", type=int)
-        self.add_pattern("ratio_total_value_conflicts_1_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, .+?\], #V = \[(\d+), \d+\], #V/#S\^2 = \[(.+?), .+?\], .*", type=float)
-        self.add_pattern("ratio_total_value_conflicts_2_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, .+?\], #V = \[(\d+), \d+\], #V/#S\^2 = \[.+?, (.+?)\], .*", type=float)
+        self.add_pattern("ratio_total_value_conflicts_1_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, .+?\], #V = \[\d+, \d+\], #V/#S\^2 = \[(.+?), .+?\], .*", type=float)
+        self.add_pattern("ratio_total_value_conflicts_2_wl", r".*\[Results\] Table row: \[# = \d+, #S = \d+, #S\^2 = \d+, #C = \[\d+, \d+\], #C/#S\^2 = \[.+?, .+?\], #V = \[\d+, \d+\], #V/#S\^2 = \[.+?, (.+?)\], .*", type=float)
         self.add_pattern("peak_memory_in_mib", r".*\[Results\] Peak memory usage: (\d+) MiB\.", type=int)
 
         self.add_function(coverage)
