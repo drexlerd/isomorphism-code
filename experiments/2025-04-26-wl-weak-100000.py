@@ -57,7 +57,7 @@ if REMOTE:
         "spanner",
         "visitall",
     ]
-    TIME_LIMIT = 60 * 60 * 3  # 3 hours
+    TIME_LIMIT = 60 * 60 * 12  # 12 hours
 else:
     ENV = LocalEnvironment(processes=12)
     SUITE = [
@@ -117,7 +117,7 @@ for domain_name in SUITE:
     # We could also use exp.add_resource().
     run.add_command(
         "main_script_wl",
-        [sys.executable, "-u", "{main_script}", "wl-no-decoding-table", "--data-path", f"{domain_name}", "--no-decoding-table", "--max-num-states", "100000"],
+        [sys.executable, "-u", "{main_script}", "wl", "--data-path", f"{domain_name}", "--no-decoding-table", "--max-num-states", "100000"],
         time_limit=TIME_LIMIT,
         memory_limit=MEMORY_LIMIT,
     )

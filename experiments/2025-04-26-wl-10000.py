@@ -57,7 +57,7 @@ if REMOTE:
         "spanner",
         "visitall",
     ]
-    TIME_LIMIT = 60 * 60 * 3  # 3 hours
+    TIME_LIMIT = 60 * 60 * 12  # 12 hours
 else:
     ENV = LocalEnvironment(processes=12)
     SUITE = [
