@@ -24,14 +24,13 @@ class StateInformation:
 
 
 class Driver:
-    def __init__(self, data_path : Path, verbosity: str, enable_pruning: bool, max_num_states: int, no_decoding_table: bool):
+    def __init__(self, data_path : Path, verbosity: str, max_num_states: int, no_decoding_table: bool):
         self._domain_file_path = (data_path / "domain.pddl").resolve()
         self._problem_file_paths = [file.resolve() for file in data_path.iterdir() if file.is_file() and file.name != "domain.pddl"]
         self._coloring_function = None
         self._logger = initialize_logger("wl")
         self._logger.setLevel(verbosity)
         self._verbosity = verbosity.upper()
-        self._enable_pruning = enable_pruning
         self._max_num_states = max_num_states
         self._no_decoding_table = no_decoding_table
         add_console_handler(self._logger)
@@ -196,7 +195,7 @@ class Driver:
     def run(self):
         """ Main loop for computing k-WL and Aut(S(P)) for state space S(P).
         """
-        self._logger.info(f"[Configuration] [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, no_decoding_table = {self._no_decoding_table}]")
+        self._logger.info(f"[Configuration] [max_num_states = {self._max_num_states}, no_decoding_table = {self._no_decoding_table}]")
         self._logger.debug("[Configuration] Domain file: {self._domain_file_path}")
         for i, problem_file_path in enumerate(self._problem_file_paths):
             self._logger.debug(f"[Configuration] Problem {i} file: {problem_file_path}")
@@ -210,7 +209,7 @@ class Driver:
 
         self._logger.info("[Results] Ran to completion.")
         self._logger.info(f"[Results] Domain: {self._domain_file_path}")
-        self._logger.info(f"[Results] Configuration: [enable_pruning = {self._enable_pruning}, max_num_states = {self._max_num_states}, no_decoding_table = {self._no_decoding_table}]")
+        self._logger.info(f"[Results] Configuration: [max_num_states = {self._max_num_states}, no_decoding_table = {self._no_decoding_table}]")
         total_conflicts_score = [num_conflict / (num_states * num_states) for num_conflict in total_conflicts]
         value_conflicts_score = [num_conflict / (num_states * num_states) for num_conflict in value_conflicts]
         self._logger.info(f"[Results] Table row: [# = {len(self._problem_file_paths)}, #S = {num_states}, #S^2 = {num_states * num_states}, #C = {total_conflicts}, #C/#S^2 = [{', '.join(f'{value:.5f}' for value in total_conflicts_score)}], #V = {value_conflicts}, #V/#S^2 = [{', '.join(f'{value:.5f}' for value in value_conflicts_score)}], #C/same = {total_conflicts_same_instance}, #V/same = {value_conflicts_same_instance}]")
